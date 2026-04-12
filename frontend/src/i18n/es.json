@@ -1,0 +1,98 @@
+{
+  "nav": {
+    "search": "Buscar vuelos",
+    "dashboard": "Dashboard",
+    "queries": "Consultas",
+    "lang": "Idioma"
+  },
+  "seat": {
+    "available": "Disponible",
+    "reserved": "Reservado",
+    "sold": "Vendido",
+    "locked": "Bloqueado",
+    "refunded": "Devuelto",
+    "first": "Primera Clase",
+    "economy": "Turista",
+    "free": "Libres",
+    "total": "Total"
+  },
+  "booking": {
+    "reserve": "Reservar",
+    "buy": "Comprar",
+    "confirm": "Confirmar Compra",
+    "cancel": "Cancelar Reserva",
+    "refund": "Solicitar Devolución",
+    "passport": "Número de Pasaporte",
+    "passenger": "Pasajero",
+    "seat": "Asiento",
+    "price": "Precio",
+    "status": "Estado",
+    "locked_msg": "Asiento temporalmente bloqueado. Intente en unos momentos.",
+    "success": "Operación exitosa",
+    "error": "Error en la operación"
+  },
+  "flight": {
+    "origin": "Origen",
+    "destination": "Destino",
+    "date": "Fecha",
+    "class": "Clase",
+    "duration": "Duración",
+    "stopover": "Escala",
+    "price": "Precio",
+    "direct": "Directo",
+    "search": "Buscar",
+    "departure": "Salida",
+    "arrival": "Llegada",
+    "aircraft": "Aeronave",
+    "no_results": "No se encontraron vuelos",
+    "searching": "Buscando vuelos..."
+  },
+  "dashboard": {
+    "revenue": "Ingresos",
+    "flights": "Vuelos",
+    "seats": "Asientos",
+    "sync": "Sincronización",
+    "fleet": "Flota",
+    "passengers": "Pasajeros",
+    "operations": "Operaciones",
+    "geography": "Geografía",
+    "total": "Total",
+    "node": "Nodo"
+  },
+  "status": {
+    "SCHEDULED": "Programado",
+    "BOARDING": "Abordando",
+    "IN_FLIGHT": "En vuelo",
+    "LANDED": "Aterrizado",
+    "ARRIVED": "Llegado",
+    "DELAYED": "Retrasado",
+    "CANCELLED": "Cancelado",
+    "AVAILABLE": "Disponible",
+    "RESERVED": "Reservado",
+    "SOLD": "Vendido",
+    "LOCKED": "Bloqueado",
+    "REFUNDED": "Devuelto"
+  },
+  "sync": {
+    "aligned": "Nodos alineados",
+    "pending": "Propagación pendiente",
+    "conflict": "Conflicto detectado",
+    "delay": "Delay",
+    "last_event": "Último evento"
+  },
+  "city": {
+    "select": "Ciudad de compra",
+    "placeholder": "Escribe tu ciudad..."
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "export": "Exportar CSV",
+    "page": "Página",
+    "of": "de",
+    "hours": "h",
+    "minutes": "min"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "nav": { "search": "Search Flights", "dashboard": "Dashboard", "queries": "Queries", "lang": "Language" },
+  "seat": { "available": "Available", "reserved": "Reserved", "sold": "Sold", "locked": "Locked", "refunded": "Refunded", "first": "First Class", "economy": "Economy", "free": "Free", "total": "Total" },
+  "booking": { "reserve": "Reserve", "buy": "Buy", "confirm": "Confirm Purchase", "cancel": "Cancel Reservation", "refund": "Request Refund", "passport": "Passport Number", "passenger": "Passenger", "seat": "Seat", "price": "Price", "status": "Status", "locked_msg": "Seat temporarily locked. Please try again in a moment.", "success": "Operation successful", "error": "Operation failed" },
+  "flight": { "origin": "Origin", "destination": "Destination", "date": "Date", "class": "Class", "duration": "Duration", "stopover": "Stopover", "price": "Price", "direct": "Direct", "search": "Search", "departure": "Departure", "arrival": "Arrival", "aircraft": "Aircraft", "no_results": "No flights found", "searching": "Searching flights..." },
+  "dashboard": { "revenue": "Revenue", "flights": "Flights", "seats": "Seats", "sync": "Synchronization", "fleet": "Fleet", "passengers": "Passengers", "operations": "Operations", "geography": "Geography", "total": "Total", "node": "Node" },
+  "status": { "SCHEDULED": "Scheduled", "BOARDING": "Boarding", "IN_FLIGHT": "In Flight", "LANDED": "Landed", "ARRIVED": "Arrived", "DELAYED": "Delayed", "CANCELLED": "Cancelled", "AVAILABLE": "Available", "RESERVED": "Reserved", "SOLD": "Sold", "LOCKED": "Locked", "REFUNDED": "Refunded" },
+  "sync": { "aligned": "Nodes aligned", "pending": "Propagation pending", "conflict": "Conflict detected", "delay": "Delay", "last_event": "Last event" },
+  "city": { "select": "Purchase city", "placeholder": "Type your city..." },
+  "common": { "loading": "Loading...", "error": "Error", "retry": "Retry", "close": "Close", "export": "Export CSV", "page": "Page", "of": "of", "hours": "h", "minutes": "min" }
+}
