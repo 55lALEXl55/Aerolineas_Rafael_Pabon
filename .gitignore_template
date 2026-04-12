@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node / React
+node_modules/
+dist/
+.vite/
+*.local
+
+# Docker
+*.log
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Seed data (CSV grande)
+database/seed/*.csv
+
+# Boletos generados (PDFs)
+tickets/generated/*.pdf
+
+# SQL Server data files
+database/sqlserver/data/
