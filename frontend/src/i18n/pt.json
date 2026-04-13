@@ -1,11 +1,99 @@
 {
-  "nav": { "search": "Buscar Voos", "dashboard": "Painel", "queries": "Consultas", "lang": "Idioma" },
-  "seat": { "available": "Disponível", "reserved": "Reservado", "sold": "Vendido", "locked": "Bloqueado", "refunded": "Reembolsado", "first": "Primeira Classe", "economy": "Econômica", "free": "Livres", "total": "Total" },
-  "booking": { "reserve": "Reservar", "buy": "Comprar", "confirm": "Confirmar Compra", "cancel": "Cancelar Reserva", "refund": "Solicitar Reembolso", "passport": "Número do Passaporte", "passenger": "Passageiro", "seat": "Assento", "price": "Preço", "status": "Status", "locked_msg": "Assento temporariamente bloqueado. Tente novamente em instantes.", "success": "Operação bem-sucedida", "error": "Falha na operação" },
-  "flight": { "origin": "Origem", "destination": "Destino", "date": "Data", "class": "Classe", "duration": "Duração", "stopover": "Escala", "price": "Preço", "direct": "Direto", "search": "Buscar", "departure": "Partida", "arrival": "Chegada", "aircraft": "Aeronave", "no_results": "Nenhum voo encontrado", "searching": "Buscando voos..." },
-  "dashboard": { "revenue": "Receita", "flights": "Voos", "seats": "Assentos", "sync": "Sincronização", "fleet": "Frota", "passengers": "Passageiros", "operations": "Operações", "geography": "Geografia", "total": "Total", "node": "Nó" },
-  "status": { "SCHEDULED": "Programado", "BOARDING": "Embarcando", "IN_FLIGHT": "Em voo", "LANDED": "Pousado", "ARRIVED": "Chegou", "DELAYED": "Atrasado", "CANCELLED": "Cancelado", "AVAILABLE": "Disponível", "RESERVED": "Reservado", "SOLD": "Vendido", "LOCKED": "Bloqueado", "REFUNDED": "Reembolsado" },
-  "sync": { "aligned": "Nós alinhados", "pending": "Propagação pendente", "conflict": "Conflito detectado", "delay": "Atraso", "last_event": "Último evento" },
-  "city": { "select": "Cidade de compra", "placeholder": "Digite sua cidade..." },
-  "common": { "loading": "Carregando...", "error": "Erro", "retry": "Tentar novamente", "close": "Fechar", "export": "Exportar CSV", "page": "Página", "of": "de", "hours": "h", "minutes": "min" }
+  "nav": {
+    "search": "Buscar Voos",
+    "dashboard": "Painel",
+    "queries": "Consultas",
+    "lang": "Idioma"
+  },
+  "seat": {
+    "available": "Disponível",
+    "reserved": "Reservado",
+    "sold": "Vendido",
+    "locked": "Bloqueado",
+    "refunded": "Reembolsado",
+    "first": "Primeira Classe",
+    "economy": "Econômica",
+    "free": "Livres",
+    "total": "Total"
+  },
+  "booking": {
+    "reserve": "Reservar",
+    "buy": "Comprar",
+    "confirm": "Confirmar Compra",
+    "cancel": "Cancelar Reserva",
+    "refund": "Solicitar Reembolso",
+    "passport": "Número do Passaporte",
+    "passenger": "Passageiro",
+    "seat": "Assento",
+    "price": "Preço",
+    "status": "Status",
+    "locked_msg": "Assento temporariamente bloqueado. Tente novamente em instantes.",
+    "success": "Operação bem-sucedida",
+    "error": "Falha na operação",
+    "full_name": "Nome completo"
+  },
+  "flight": {
+    "origin": "Origem",
+    "destination": "Destino",
+    "date": "Data",
+    "class": "Classe",
+    "duration": "Duração",
+    "stopover": "Escala",
+    "price": "Preço",
+    "direct": "Direto",
+    "search": "Buscar",
+    "departure": "Partida",
+    "arrival": "Chegada",
+    "aircraft": "Aeronave",
+    "no_results": "Nenhum voo encontrado",
+    "searching": "Buscando voos..."
+  },
+  "dashboard": {
+    "revenue": "Receita",
+    "flights": "Voos",
+    "seats": "Assentos",
+    "sync": "Sincronização",
+    "fleet": "Frota",
+    "passengers": "Passageiros",
+    "operations": "Operações",
+    "geography": "Geografia",
+    "total": "Total",
+    "node": "Nó"
+  },
+  "status": {
+    "SCHEDULED": "Programado",
+    "BOARDING": "Embarcando",
+    "IN_FLIGHT": "Em voo",
+    "LANDED": "Pousado",
+    "ARRIVED": "Chegou",
+    "DELAYED": "Atrasado",
+    "CANCELLED": "Cancelado",
+    "AVAILABLE": "Disponível",
+    "RESERVED": "Reservado",
+    "SOLD": "Vendido",
+    "LOCKED": "Bloqueado",
+    "REFUNDED": "Reembolsado"
+  },
+  "sync": {
+    "aligned": "Nós alinhados",
+    "pending": "Propagação pendente",
+    "conflict": "Conflito detectado",
+    "delay": "Atraso",
+    "last_event": "Último evento"
+  },
+  "city": {
+    "select": "Cidade de compra",
+    "placeholder": "Digite sua cidade..."
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "retry": "Tentar novamente",
+    "close": "Fechar",
+    "export": "Exportar CSV",
+    "page": "Página",
+    "of": "de",
+    "hours": "h",
+    "minutes": "min"
+  }
 }

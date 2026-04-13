@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plane, Users, DollarSign } from 'lucide-react'
-import { getFlightById, getFlightSeats, lockSeat } from '../api'
+import { getFlightById, getFlightSeats, lockSeat, generateToken } from '../api'
 import { epochToLocal, epochToTime, durationStr } from '../utils/epochUtils'
 import { getAircraftModel } from '../utils/seatLayout'
 import { getAirportTz } from '../utils/geoRouter'
@@ -15,7 +15,7 @@ export default function SeatSelection() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { selectedFlight: storeFlight, setSelectedFlight } = useBookingStore()
+  const { selectedFlight: storeFlight, setSelectedFlight, setSessionToken } = useBookingStore()
 
   const [flight, setFlight] = useState(storeFlight)
   const [seats, setSeats] = useState([])
@@ -58,7 +58,9 @@ export default function SeatSelection() {
     // Auto-lock if available
     if (seat.status === 'AVAILABLE') {
       try {
-        await lockSeat(flight.flight_id, seat.seat_id)
+        const token = generateToken()
+        setSessionToken(token)
+        await lockSeat(flight.flight_id, seat.seat_id, token)
       } catch { /* seat may already be locked */ }
     }
     setModalOpen(true)

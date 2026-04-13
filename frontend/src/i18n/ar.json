@@ -1,11 +1,99 @@
 {
-  "nav": { "search": "البحث عن رحلات", "dashboard": "لوحة التحكم", "queries": "الاستفسارات", "lang": "اللغة" },
-  "seat": { "available": "متاح", "reserved": "محجوز", "sold": "مباع", "locked": "مقفل", "refunded": "مسترد", "first": "الدرجة الأولى", "economy": "الدرجة السياحية", "free": "متاح", "total": "المجموع" },
-  "booking": { "reserve": "احجز", "buy": "اشترِ", "confirm": "تأكيد الشراء", "cancel": "إلغاء الحجز", "refund": "طلب استرداد", "passport": "رقم جواز السفر", "passenger": "الراكب", "seat": "المقعد", "price": "السعر", "status": "الحالة", "locked_msg": "المقعد مغلق مؤقتاً. يرجى المحاولة لاحقاً.", "success": "تمت العملية بنجاح", "error": "فشلت العملية" },
-  "flight": { "origin": "المغادرة", "destination": "الوجهة", "date": "التاريخ", "class": "الدرجة", "duration": "المدة", "stopover": "توقف", "price": "السعر", "direct": "مباشر", "search": "بحث", "departure": "المغادرة", "arrival": "الوصول", "aircraft": "الطائرة", "no_results": "لم يتم العثور على رحلات", "searching": "جارٍ البحث..." },
-  "dashboard": { "revenue": "الإيرادات", "flights": "الرحلات", "seats": "المقاعد", "sync": "المزامنة", "fleet": "الأسطول", "passengers": "الركاب", "operations": "العمليات", "geography": "الجغرافيا", "total": "الإجمالي", "node": "العقدة" },
-  "status": { "SCHEDULED": "مجدول", "BOARDING": "الصعود", "IN_FLIGHT": "في الجو", "LANDED": "هبطت", "ARRIVED": "وصلت", "DELAYED": "متأخر", "CANCELLED": "ملغى", "AVAILABLE": "متاح", "RESERVED": "محجوز", "SOLD": "مباع", "LOCKED": "مقفل", "REFUNDED": "مسترد" },
-  "sync": { "aligned": "العقد متزامنة", "pending": "انتشار معلق", "conflict": "تعارض مكتشف", "delay": "التأخير", "last_event": "آخر حدث" },
-  "city": { "select": "مدينة الشراء", "placeholder": "اكتب مدينتك..." },
-  "common": { "loading": "جارٍ التحميل...", "error": "خطأ", "retry": "إعادة المحاولة", "close": "إغلاق", "export": "تصدير CSV", "page": "صفحة", "of": "من", "hours": "س", "minutes": "د" }
+  "nav": {
+    "search": "البحث عن رحلات",
+    "dashboard": "لوحة التحكم",
+    "queries": "الاستفسارات",
+    "lang": "اللغة"
+  },
+  "seat": {
+    "available": "متاح",
+    "reserved": "محجوز",
+    "sold": "مباع",
+    "locked": "مقفل",
+    "refunded": "مسترد",
+    "first": "الدرجة الأولى",
+    "economy": "الدرجة السياحية",
+    "free": "متاح",
+    "total": "المجموع"
+  },
+  "booking": {
+    "reserve": "احجز",
+    "buy": "اشترِ",
+    "confirm": "تأكيد الشراء",
+    "cancel": "إلغاء الحجز",
+    "refund": "طلب استرداد",
+    "passport": "رقم جواز السفر",
+    "passenger": "الراكب",
+    "seat": "المقعد",
+    "price": "السعر",
+    "status": "الحالة",
+    "locked_msg": "المقعد مغلق مؤقتاً. يرجى المحاولة لاحقاً.",
+    "success": "تمت العملية بنجاح",
+    "error": "فشلت العملية",
+    "full_name": "الاسم الكامل"
+  },
+  "flight": {
+    "origin": "المغادرة",
+    "destination": "الوجهة",
+    "date": "التاريخ",
+    "class": "الدرجة",
+    "duration": "المدة",
+    "stopover": "توقف",
+    "price": "السعر",
+    "direct": "مباشر",
+    "search": "بحث",
+    "departure": "المغادرة",
+    "arrival": "الوصول",
+    "aircraft": "الطائرة",
+    "no_results": "لم يتم العثور على رحلات",
+    "searching": "جارٍ البحث..."
+  },
+  "dashboard": {
+    "revenue": "الإيرادات",
+    "flights": "الرحلات",
+    "seats": "المقاعد",
+    "sync": "المزامنة",
+    "fleet": "الأسطول",
+    "passengers": "الركاب",
+    "operations": "العمليات",
+    "geography": "الجغرافيا",
+    "total": "الإجمالي",
+    "node": "العقدة"
+  },
+  "status": {
+    "SCHEDULED": "مجدول",
+    "BOARDING": "الصعود",
+    "IN_FLIGHT": "في الجو",
+    "LANDED": "هبطت",
+    "ARRIVED": "وصلت",
+    "DELAYED": "متأخر",
+    "CANCELLED": "ملغى",
+    "AVAILABLE": "متاح",
+    "RESERVED": "محجوز",
+    "SOLD": "مباع",
+    "LOCKED": "مقفل",
+    "REFUNDED": "مسترد"
+  },
+  "sync": {
+    "aligned": "العقد متزامنة",
+    "pending": "انتشار معلق",
+    "conflict": "تعارض مكتشف",
+    "delay": "التأخير",
+    "last_event": "آخر حدث"
+  },
+  "city": {
+    "select": "مدينة الشراء",
+    "placeholder": "اكتب مدينتك..."
+  },
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "retry": "إعادة المحاولة",
+    "close": "إغلاق",
+    "export": "تصدير CSV",
+    "page": "صفحة",
+    "of": "من",
+    "hours": "س",
+    "minutes": "د"
+  }
 }

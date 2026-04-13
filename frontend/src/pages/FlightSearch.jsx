@@ -112,7 +112,7 @@ export default function FlightSearch() {
     } catch (e) {
       // Fallback to route finding
       try {
-        const route = await findRoute(form.origin, form.destination, 'cheapest')
+        const route = await findRoute(form.origin, form.destination, epoch, 'price')
         setResults(route.flights || [])
       } catch {
         setError(e.message)

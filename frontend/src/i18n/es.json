@@ -29,7 +29,8 @@
     "status": "Estado",
     "locked_msg": "Asiento temporalmente bloqueado. Intente en unos momentos.",
     "success": "Operación exitosa",
-    "error": "Error en la operación"
+    "error": "Error en la operación",
+    "full_name": "Nombre completo"
   },
   "flight": {
     "origin": "Origen",

@@ -1,13 +1,35 @@
+# Secrets
 .env
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .venv/
 venv/
-node_modules/
-dist/
-.DS_Store
-*.log
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Seed data (large CSV)
+database/seed/*.csv
+
+# Generated tickets
+tickets/generated/
+
+# IDE
+.idea/
+.vscode/

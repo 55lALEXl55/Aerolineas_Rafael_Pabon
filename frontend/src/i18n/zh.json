@@ -1,11 +1,99 @@
 {
-  "nav": { "search": "搜索航班", "dashboard": "仪表板", "queries": "查询", "lang": "语言" },
-  "seat": { "available": "可用", "reserved": "已预订", "sold": "已售", "locked": "已锁定", "refunded": "已退款", "first": "头等舱", "economy": "经济舱", "free": "空余", "total": "合计" },
-  "booking": { "reserve": "预订", "buy": "购买", "confirm": "确认购买", "cancel": "取消预订", "refund": "申请退款", "passport": "护照号码", "passenger": "乘客", "seat": "座位", "price": "价格", "status": "状态", "locked_msg": "座位暂时锁定，请稍后再试。", "success": "操作成功", "error": "操作失败" },
-  "flight": { "origin": "出发地", "destination": "目的地", "date": "日期", "class": "舱位", "duration": "时长", "stopover": "中转", "price": "价格", "direct": "直飞", "search": "搜索", "departure": "出发", "arrival": "到达", "aircraft": "机型", "no_results": "未找到航班", "searching": "搜索中..." },
-  "dashboard": { "revenue": "收入", "flights": "航班", "seats": "座位", "sync": "同步", "fleet": "机队", "passengers": "乘客", "operations": "运营", "geography": "地理", "total": "总计", "node": "节点" },
-  "status": { "SCHEDULED": "计划中", "BOARDING": "登机中", "IN_FLIGHT": "飞行中", "LANDED": "已降落", "ARRIVED": "已到达", "DELAYED": "延误", "CANCELLED": "取消", "AVAILABLE": "可用", "RESERVED": "已预订", "SOLD": "已售", "LOCKED": "锁定", "REFUNDED": "退款" },
-  "sync": { "aligned": "节点同步", "pending": "传播中", "conflict": "冲突检测", "delay": "延迟", "last_event": "最后��件" },
-  "city": { "select": "购买城市", "placeholder": "输入城市..." },
-  "common": { "loading": "加载中...", "error": "错误", "retry": "重试", "close": "关闭", "export": "导出CSV", "page": "第", "of": "共", "hours": "时", "minutes": "分" }
+  "nav": {
+    "search": "搜索航班",
+    "dashboard": "仪表板",
+    "queries": "查询",
+    "lang": "语言"
+  },
+  "seat": {
+    "available": "可用",
+    "reserved": "已预订",
+    "sold": "已售",
+    "locked": "已锁定",
+    "refunded": "已退款",
+    "first": "头等舱",
+    "economy": "经济舱",
+    "free": "空余",
+    "total": "合计"
+  },
+  "booking": {
+    "reserve": "预订",
+    "buy": "购买",
+    "confirm": "确认购买",
+    "cancel": "取消预订",
+    "refund": "申请退款",
+    "passport": "护照号码",
+    "passenger": "乘客",
+    "seat": "座位",
+    "price": "价格",
+    "status": "状态",
+    "locked_msg": "座位暂时锁定，请稍后再试。",
+    "success": "操作成功",
+    "error": "操作失败",
+    "full_name": "全名"
+  },
+  "flight": {
+    "origin": "出发地",
+    "destination": "目的地",
+    "date": "日期",
+    "class": "舱位",
+    "duration": "时长",
+    "stopover": "中转",
+    "price": "价格",
+    "direct": "直飞",
+    "search": "搜索",
+    "departure": "出发",
+    "arrival": "到达",
+    "aircraft": "机型",
+    "no_results": "未找到航班",
+    "searching": "搜索中..."
+  },
+  "dashboard": {
+    "revenue": "收入",
+    "flights": "航班",
+    "seats": "座位",
+    "sync": "同步",
+    "fleet": "机队",
+    "passengers": "乘客",
+    "operations": "运营",
+    "geography": "地理",
+    "total": "总计",
+    "node": "节点"
+  },
+  "status": {
+    "SCHEDULED": "计划中",
+    "BOARDING": "登机中",
+    "IN_FLIGHT": "飞行中",
+    "LANDED": "已降落",
+    "ARRIVED": "已到达",
+    "DELAYED": "延误",
+    "CANCELLED": "取消",
+    "AVAILABLE": "可用",
+    "RESERVED": "已预订",
+    "SOLD": "已售",
+    "LOCKED": "锁定",
+    "REFUNDED": "退款"
+  },
+  "sync": {
+    "aligned": "节点同步",
+    "pending": "传播中",
+    "conflict": "冲突检测",
+    "delay": "延迟",
+    "last_event": "最后��件"
+  },
+  "city": {
+    "select": "购买城市",
+    "placeholder": "输入城市..."
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "retry": "重试",
+    "close": "关闭",
+    "export": "导出CSV",
+    "page": "第",
+    "of": "共",
+    "hours": "时",
+    "minutes": "分"
+  }
 }

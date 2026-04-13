@@ -229,7 +229,9 @@ def generate_seats(flight_id: int, aircraft_id: int, price_economy: float,
 def get_sql_conn(conn_str: str):
     for attempt in range(10):
         try:
-            return pyodbc.connect(conn_str, timeout=5)
+            conn = pyodbc.connect(conn_str, timeout=5)
+            conn.autocommit = False
+            return conn
         except Exception as e:
             print(f"  Reintentando conexión SQL ({attempt+1}/10)… {e}")
             time.sleep(5)
@@ -291,12 +293,14 @@ def insert_flight_sql(cursor, row_data: dict) -> int:
 
 
 def insert_seats_sql(cursor, seats: list[dict]):
-    for s in seats:
-        cursor.execute(INSERT_SEAT_SQL, (
-            s["flight_id"], s["seat_number"], s["seat_class"],
-            s["status"], s["locked_until"], s["price"],
-            s["node_id"], 0, "[0,0,0]", s["last_update_epoch"],
-        ))
+    params = [
+        (s["flight_id"], s["seat_number"], s["seat_class"],
+         s["status"], s["locked_until"], s["price"],
+         s["node_id"], 0, "[0,0,0]", s["last_update_epoch"])
+        for s in seats
+    ]
+    cursor.fast_executemany = True
+    cursor.executemany(INSERT_SEAT_SQL, params)
 
 
 def mongo_next_id(mdb, counter_name: str) -> int:
@@ -306,6 +310,17 @@ def mongo_next_id(mdb, counter_name: str) -> int:
         return_document=True,
     )
     return result["seq"]
+
+
+def mongo_alloc_ids(mdb, counter_name: str, count: int) -> range:
+    """Reserva `count` IDs en un solo round-trip. Devuelve range con los IDs."""
+    result = mdb.counters.find_one_and_update(
+        {"_id": counter_name},
+        {"$inc": {"seq": count}},
+        return_document=True,
+    )
+    last = result["seq"]
+    return range(last - count + 1, last + 1)
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -349,7 +364,7 @@ def main():
 
     # Leer CSV
     with open(args.csv, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
+        reader = csv.DictReader(f, skipinitialspace=True)
         rows = list(reader)
 
     print(f"Procesando {len(rows):,} vuelos…")
@@ -410,7 +425,7 @@ def main():
                 avail_eco, avail_first, flight_id
             )
             n1 += 1
-            if n1 % 500 == 0:
+            if n1 % 2000 == 0:
                 conn1.commit()
 
         elif node_id == 2:
@@ -424,27 +439,23 @@ def main():
                 avail_eco, avail_first, flight_id
             )
             n2 += 1
-            if n2 % 500 == 0:
+            if n2 % 2000 == 0:
                 conn2.commit()
 
         else:  # node 3 — MongoDB
             flight_id = mongo_next_id(mdb, "flight_id")
-            flight_doc = {**flight_data, "flight_id": flight_id}
-            mdb.flights.insert_one(flight_doc)
             seats = generate_seats(flight_id, aircraft_id, price_eco, price_first, rng)
-            # Asignar seat_id a cada asiento
-            seat_docs = []
-            for s in seats:
-                s["seat_id"] = mongo_next_id(mdb, "seat_id")
-                seat_docs.append(s)
-            if seat_docs:
-                mdb.seats.insert_many(seat_docs)
-            avail_eco   = sum(1 for s in seat_docs if s["seat_class"] == "ECONOMY" and s["status"] == "AVAILABLE")
-            avail_first = sum(1 for s in seat_docs if s["seat_class"] == "FIRST"   and s["status"] == "AVAILABLE")
-            mdb.flights.update_one(
-                {"flight_id": flight_id},
-                {"$set": {"available_economy": avail_eco, "available_first": avail_first}}
-            )
+            # Asignar seat_ids en un solo round-trip
+            seat_ids = mongo_alloc_ids(mdb, "seat_id", len(seats))
+            for s, sid in zip(seats, seat_ids):
+                s["seat_id"] = sid
+            avail_eco   = sum(1 for s in seats if s["seat_class"] == "ECONOMY" and s["status"] == "AVAILABLE")
+            avail_first = sum(1 for s in seats if s["seat_class"] == "FIRST"   and s["status"] == "AVAILABLE")
+            flight_doc = {**flight_data, "flight_id": flight_id,
+                          "available_economy": avail_eco, "available_first": avail_first}
+            mdb.flights.insert_one(flight_doc)
+            if seats:
+                mdb.seats.insert_many(seats, ordered=False)
             n3 += 1
 
     # Commit final

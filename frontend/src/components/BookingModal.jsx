@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Clock, User, CreditCard, AlertCircle } from 'lucide-react'
 import { reserveSeat, buySeat, refundTicket, cancelReservation, getPassengerByPassport } from '../api'
+import { useBookingStore } from '../stores/bookingStore'
 import { epochToTime } from '../utils/epochUtils'
 import { getAirportTz } from '../utils/geoRouter'
 import { STATUS_COLORS, STATUS_TEXT_COLORS } from '../utils/seatLayout'
 
 export default function BookingModal({ seat, flight, onClose, onConfirm }) {
   const { t } = useTranslation()
+  const { sessionToken } = useBookingStore()
   const [passport, setPassport] = useState('')
   const [passengerName, setPassengerName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -58,10 +60,9 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
       const payload = {
         flight_id: flight?.flight_id,
         seat_id: seat?.seat_id,
-        seat_number: seat?.seat_number,
-        passport_number: passport,
-        passenger_name: passengerName,
-        purchase_city: localStorage.getItem('purchaseCity') || '',
+        session_token: sessionToken || `ui-${Date.now()}`,
+        passport: passport,
+        full_name: passengerName || passport,
       }
       if (action === 'reserve') result = await reserveSeat(payload)
       else if (action === 'buy') result = await buySeat(payload)
@@ -140,23 +141,35 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
 
           {/* Passport input */}
           {status !== 'LOCKED' && (
-            <div>
-              <label className="text-slate-400 text-sm mb-1 block">
-                <User className="w-3 h-3 inline mr-1" />
-                {t('booking.passport')}
-              </label>
-              <input
-                value={passport}
-                onChange={e => setPassport(e.target.value.toUpperCase())}
-                onBlur={handlePassportBlur}
-                placeholder="AB123456"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white
-                  focus:outline-none focus:border-blue-500 font-mono"
-                maxLength={20}
-              />
-              {passengerName && (
-                <p className="text-green-400 text-xs mt-1">✓ {passengerName}</p>
-              )}
+            <div className="space-y-3">
+              <div>
+                <label className="text-slate-400 text-sm mb-1 block">
+                  <User className="w-3 h-3 inline mr-1" />
+                  {t('booking.passport')}
+                </label>
+                <input
+                  value={passport}
+                  onChange={e => setPassport(e.target.value.toUpperCase())}
+                  onBlur={handlePassportBlur}
+                  placeholder="AB123456"
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white
+                    focus:outline-none focus:border-blue-500 font-mono"
+                  maxLength={20}
+                />
+              </div>
+              <div>
+                <label className="text-slate-400 text-sm mb-1 block">
+                  {t('booking.full_name')}
+                </label>
+                <input
+                  value={passengerName}
+                  onChange={e => setPassengerName(e.target.value)}
+                  placeholder="Juan García"
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white
+                    focus:outline-none focus:border-blue-500"
+                  maxLength={80}
+                />
+              </div>
             </div>
           )}
 

@@ -1,9 +1,53 @@
 """
-models.py — Modelos Pydantic para ms-bookings
+models.py — Modelos Pydantic para ms-bookings v2
 """
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel
 
+
+# ─── Requests ────────────────────────────────────────────────────────────────
+
+class LockRequest(BaseModel):
+    seat_id: int
+    flight_id: int       # necesario para enrutar a la BD correcta
+    session_token: str
+
+
+class ReserveRequest(BaseModel):
+    seat_id: int
+    flight_id: int
+    session_token: str
+    passport: str
+    full_name: str
+    email: Optional[str] = "sin_email@rafael-pabon.com"
+    phone: Optional[str] = None
+    nationality: Optional[str] = None
+
+
+class PurchaseRequest(BaseModel):
+    seat_id: int
+    flight_id: int
+    session_token: str
+    passport: str
+    full_name: str
+    email: Optional[str] = "sin_email@rafael-pabon.com"
+    phone: Optional[str] = None
+    nationality: Optional[str] = None
+
+
+class CancelRequest(BaseModel):
+    seat_id: int
+    flight_id: int
+    passport: str
+
+
+class RefundRequest(BaseModel):
+    seat_id: int
+    flight_id: int
+    passport: str
+
+
+# ─── Compatibilidad con API anterior ─────────────────────────────────────────
 
 class PassengerCreate(BaseModel):
     full_name: str
@@ -11,17 +55,6 @@ class PassengerCreate(BaseModel):
     passport_number: str
     phone: Optional[str] = None
     nationality: Optional[str] = None
-
-
-class PassengerOut(PassengerCreate):
-    passenger_id: int
-    node_id: int
-    lamport_ts: int
-    vector_clock: str
-    last_update_epoch: int
-
-    class Config:
-        from_attributes = True
 
 
 class BookingCreate(BaseModel):
@@ -47,7 +80,7 @@ class BookingOut(BaseModel):
 class SeatLockRequest(BaseModel):
     seat_id: int
     flight_id: int
-    duration_seconds: int = 300  # 5 min máx según CLAUDE.md
+    duration_seconds: int = 300
 
 
 class PaymentRequest(BaseModel):

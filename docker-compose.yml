@@ -69,7 +69,9 @@ services:
   # ─── Microservicios ─────────────────────────────────────────────────────────
 
   ms-flights:
-    build: ./backend/services/ms-flights
+    build:
+      context: ./backend
+      dockerfile: services/ms-flights/Dockerfile
     container_name: ms-flights
     env_file: .env
     environment:
@@ -88,7 +90,9 @@ services:
     restart: unless-stopped
 
   ms-bookings:
-    build: ./backend/services/ms-bookings
+    build:
+      context: ./backend
+      dockerfile: services/ms-bookings/Dockerfile
     container_name: ms-bookings
     env_file: .env
     ports:
@@ -105,7 +109,9 @@ services:
     restart: unless-stopped
 
   ms-routes:
-    build: ./backend/services/ms-routes
+    build:
+      context: ./backend
+      dockerfile: services/ms-routes/Dockerfile
     container_name: ms-routes
     env_file: .env
     ports:
@@ -122,7 +128,9 @@ services:
     restart: unless-stopped
 
   ms-sync:
-    build: ./backend/services/ms-sync
+    build:
+      context: ./backend
+      dockerfile: services/ms-sync/Dockerfile
     container_name: ms-sync
     env_file: .env
     ports:
@@ -139,7 +147,9 @@ services:
     restart: unless-stopped
 
   ms-tickets:
-    build: ./backend/services/ms-tickets
+    build:
+      context: ./backend
+      dockerfile: services/ms-tickets/Dockerfile
     container_name: ms-tickets
     env_file: .env
     ports:
@@ -156,9 +166,13 @@ services:
     restart: unless-stopped
 
   ms-dashboard:
-    build: ./backend/services/ms-dashboard
+    build:
+      context: ./backend
+      dockerfile: services/ms-dashboard/Dockerfile
     container_name: ms-dashboard
     env_file: .env
+    environment:
+      MS_SYNC_URL: "http://ms-sync:8004"
     ports:
       - "8006:8006"
     depends_on:
@@ -172,14 +186,17 @@ services:
       - aerolineas_net
     restart: unless-stopped
 
-  # ─── Nginx ──────────────────────────────────────────────────────────────────
+  # ─── Nginx (sirve frontend React compilado + API gateway) ──────────────────
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: nginx
     ports:
       - "80:80"
     volumes:
+      # nginx.conf montado para poder cambiar routing sin rebuild del frontend
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - ms-flights

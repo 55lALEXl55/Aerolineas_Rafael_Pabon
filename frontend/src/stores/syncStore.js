@@ -12,11 +12,17 @@ export const useSyncStore = create((set, get) => ({
     const poll = async () => {
       try {
         const data = await getDashboardSyncStatus()
-        set({
-          nodes: data.nodes || { db1: null, db2: null, db3: null },
-          globalStatus: data.global_status || 'aligned',
-          lastUpdated: Date.now(),
-        })
+        // Map actual API response to node format expected by SyncStatus component
+        const svcs = data.services || {}
+        const conflicts = data.sync_stats?.conflicts_detected || 0
+        const nodes = {
+          db1: { delay_ms: svcs['ms-flights']?.latency_ms ?? 0, status: svcs['ms-flights']?.status },
+          db2: { delay_ms: svcs['ms-bookings']?.latency_ms ?? 0, status: svcs['ms-bookings']?.status },
+          db3: { delay_ms: svcs['ms-sync']?.latency_ms ?? 0, status: svcs['ms-sync']?.status },
+        }
+        const allOk = Object.values(svcs).every(s => s.status === 'OK')
+        const globalStatus = conflicts > 0 ? 'conflict' : allOk ? 'aligned' : 'pending'
+        set({ nodes, globalStatus, lastUpdated: Date.now() })
       } catch {
         // ignore — show stale data
       }
