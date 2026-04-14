@@ -4,7 +4,6 @@ import es from './es.json'
 import en from './en.json'
 import zh from './zh.json'
 import pt from './pt.json'
-import ar from './ar.json'
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -12,7 +11,6 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
     zh: { translation: zh },
     pt: { translation: pt },
-    ar: { translation: ar },
   },
   lng: localStorage.getItem('lang') || 'es',
   fallbackLng: 'es',

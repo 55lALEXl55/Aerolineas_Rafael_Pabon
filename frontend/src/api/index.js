@@ -60,6 +60,12 @@ export const buySeat = (data) =>
     body: JSON.stringify(data),
   })
 
+export const purchaseMultiple = (data) =>
+  req(`/api/bookings/purchase-multiple`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+
 export const refundTicket = (ticketId) =>
   req(`/api/bookings/refund-ticket`, {
     method: 'POST',
@@ -74,6 +80,9 @@ export const cancelReservation = (ticketId) =>
 
 export const getPassengerByPassport = (passport) =>
   req(`/api/bookings/passenger/${passport}`)
+
+export const searchPassengersByPrefix = (q) =>
+  req(`/api/bookings/passengers/search?q=${encodeURIComponent(q)}`)
 
 // ─── Routes / Dijkstra ────────────────────────────────────────────────────────
 
@@ -126,6 +135,9 @@ export const getAirports = () =>
 // ─── Tickets ──────────────────────────────────────────────────────────────────
 export const getTicket = (ticketId) =>
   req(`/api/tickets/${ticketId}`)
+
+export const getTicketFull = (ticketId) =>
+  req(`/api/tickets/${ticketId}/full`)
 
 export const getFlightTickets = (flightId) =>
   req(`/api/tickets/flight/${flightId}`)

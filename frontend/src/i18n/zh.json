@@ -3,7 +3,11 @@
     "search": "搜索航班",
     "dashboard": "仪表板",
     "queries": "查询",
-    "lang": "语言"
+    "lang": "语言",
+    "back": "返回",
+    "admin": "管理视图",
+    "client": "客户视图",
+    "ticket": "我的机票"
   },
   "seat": {
     "available": "可用",
@@ -14,7 +18,16 @@
     "first": "头等舱",
     "economy": "经济舱",
     "free": "空余",
-    "total": "合计"
+    "total": "合计",
+    "map_title": "座位图",
+    "map_hint": "点击蓝色或黄色座位继续",
+    "multi_on": "多选模式已开启",
+    "multi_off": "多选模式",
+    "multi_hint": "点击可用座位添加到购物车",
+    "cart_title": "购物车",
+    "cart_clear": "清空",
+    "cart_total": "合计",
+    "cart_buy": "购买 {{count}} 个座位"
   },
   "booking": {
     "reserve": "预订",
@@ -30,7 +43,14 @@
     "locked_msg": "座位暂时锁定，请稍后再试。",
     "success": "操作成功",
     "error": "操作失败",
-    "full_name": "全名"
+    "full_name": "全名",
+    "processing_node": "处理节点:",
+    "available_in": "可用于:",
+    "registered_passenger": "已注册乘客:",
+    "enter_passport": "请输入护照号码",
+    "purchase_success": "购买成功！",
+    "download_pdf": "下载PDF",
+    "add_wallet": "添加到钱包"
   },
   "flight": {
     "origin": "出发地",
@@ -46,7 +66,17 @@
     "arrival": "到达",
     "aircraft": "机型",
     "no_results": "未找到航班",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "select_airport": "选择机场",
+    "search_airport": "搜索城市或代码...",
+    "no_airports": "无结果",
+    "cheapest": "最便宜",
+    "fastest": "最快",
+    "by_price": "按价格排序",
+    "by_time": "按时长排序",
+    "via": "经由",
+    "try_other": "尝试其他日期或城市",
+    "node_connected": "已连接到:"
   },
   "dashboard": {
     "revenue": "收入",
@@ -58,7 +88,33 @@
     "operations": "运营",
     "geography": "地理",
     "total": "总计",
-    "node": "节点"
+    "node": "节点",
+    "title": "管理仪表板",
+    "title_short": "仪表板",
+    "nodes_synced": "3节点已同步",
+    "conflict": "冲突进行中",
+    "propagating": "传播变更中",
+    "refresh": "刷新",
+    "tab_sales": "销售",
+    "tab_ops": "运营",
+    "tab_geo": "地理",
+    "tab_fleet": "机队",
+    "total_revenue": "总收入",
+    "first_class": "头等舱",
+    "economy": "经济舱",
+    "top_routes": "收入前10条航线",
+    "search_passenger": "按护照搜索乘客",
+    "seat_distribution": "座位分布",
+    "flights_by_status": "按状态的航班",
+    "no_data": "无数据",
+    "airports_map": "系统机场",
+    "top_routes_req": "最受欢迎的前10条航线",
+    "vs_yesterday": "与昨天相比"
+  },
+  "admin": {
+    "sync": "同步",
+    "queries": "查询",
+    "flights": "航班"
   },
   "status": {
     "SCHEDULED": "计划中",
@@ -79,7 +135,7 @@
     "pending": "传播中",
     "conflict": "冲突检测",
     "delay": "延迟",
-    "last_event": "最后��件"
+    "last_event": "最后事件"
   },
   "city": {
     "select": "购买城市",
@@ -95,5 +151,9 @@
     "of": "共",
     "hours": "时",
     "minutes": "分"
+  },
+  "error": {
+    "select_origin_dest": "请选择出发地和目的地",
+    "same_airport": "出发地和目的地必须不同"
   }
 }

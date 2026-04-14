@@ -3,6 +3,7 @@ import Layout from './components/Layout/Layout'
 import FlightSearch from './pages/FlightSearch'
 import SeatSelection from './pages/SeatSelection'
 import TicketView from './pages/TicketView'
+import BoardingPass from './pages/BoardingPass'
 import CompanyDashboard from './pages/CompanyDashboard'
 import AdminSync from './pages/admin/AdminSync'
 import AdminConsultas from './pages/admin/AdminConsultas'
@@ -12,6 +13,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ── Boarding pass standalone (sin navbar, optimizado móvil) ── */}
+        <Route path="/boarding/:id" element={<BoardingPass />} />
+
         <Route element={<Layout />}>
           {/* ── Vista Cliente ── */}
           <Route path="/" element={<FlightSearch />} />

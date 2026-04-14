@@ -10,7 +10,6 @@ const LANGS = [
   { code: 'en', label: 'EN', flag: '🇺🇸' },
   { code: 'zh', label: '中', flag: '🇨🇳' },
   { code: 'pt', label: 'PT', flag: '🇧🇷' },
-  { code: 'ar', label: 'ع',  flag: '🇸🇦' },
 ]
 
 const NODE_LABEL = { 1: 'DB1 América 🌎', 2: 'DB2 Europa 🌍', 3: 'DB3 Asia 🌏' }
@@ -25,7 +24,6 @@ export default function Navbar({ isAdmin }) {
   const changeLang = (code) => {
     i18n.changeLanguage(code)
     localStorage.setItem('lang', code)
-    document.dir = code === 'ar' ? 'rtl' : 'ltr'
   }
 
   const isActive = (path) => location.pathname === path
@@ -58,7 +56,7 @@ export default function Navbar({ isAdmin }) {
                     hover:bg-blue-600/30 transition-colors"
                 >
                   <Ticket className="w-3.5 h-3.5" />
-                  Mi boleto
+                  {t('nav.ticket')}
                 </Link>
               )}
 
@@ -70,7 +68,7 @@ export default function Navbar({ isAdmin }) {
                   hover:border-slate-500 hover:text-white transition-colors"
               >
                 <Settings className="w-3.5 h-3.5" />
-                Vista Admin
+                {t('nav.admin')}
               </button>
 
               {/* Language */}
@@ -92,10 +90,10 @@ export default function Navbar({ isAdmin }) {
 
   // ── Admin navbar ───────────────────────────────────────────────────────────
   const adminLinks = [
-    { to: '/admin',           label: 'Dashboard',       Icon: BarChart2 },
-    { to: '/admin/sync',      label: 'Sincronización',  Icon: Activity },
-    { to: '/admin/consultas', label: 'Consultas',        Icon: Database },
-    { to: '/admin/vuelos',    label: 'Vuelos',           Icon: List },
+    { to: '/admin',           label: t('dashboard.title_short'),  Icon: BarChart2 },
+    { to: '/admin/sync',      label: t('admin.sync'),             Icon: Activity },
+    { to: '/admin/consultas', label: t('nav.queries'),            Icon: Database },
+    { to: '/admin/vuelos',    label: t('admin.flights'),          Icon: List },
   ]
 
   return (
@@ -141,7 +139,7 @@ export default function Navbar({ isAdmin }) {
                 hover:border-slate-500 hover:text-white transition-colors"
             >
               <Plane className="w-3.5 h-3.5" />
-              Vista Cliente
+              {t('nav.client')}
             </button>
 
             {/* Language */}

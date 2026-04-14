@@ -17,12 +17,7 @@ import { STATUS_TEXT_COLORS } from '../utils/seatLayout'
 import NodeSelector from '../components/NodeSelector'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
-const SECTION_TABS = [
-  { id: 'sales',  label: 'Ventas',      emoji: '💰' },
-  { id: 'ops',    label: 'Operaciones', emoji: '✈️' },
-  { id: 'geo',    label: 'Geografía',   emoji: '🗺️' },
-  { id: 'fleet',  label: 'Flota',       emoji: '🛩' },
-]
+// SECTION_TABS se define dinámicamente dentro del componente para usar t()
 
 const SEAT_STATUS_COLORS = {
   AVAILABLE: '#3b82f6', RESERVED: '#f59e0b', SOLD: '#22c55e',
@@ -32,6 +27,13 @@ const SEAT_STATUS_COLORS = {
 export default function CompanyDashboard() {
   const { t } = useTranslation()
   const [tab, setTab] = useState('sales')
+
+  const SECTION_TABS = [
+    { id: 'sales',  label: t('dashboard.tab_sales'),  emoji: '💰' },
+    { id: 'ops',    label: t('dashboard.tab_ops'),    emoji: '✈️' },
+    { id: 'geo',    label: t('dashboard.tab_geo'),    emoji: '🗺️' },
+    { id: 'fleet',  label: t('dashboard.tab_fleet'),  emoji: '🛩' },
+  ]
   const [stats, setStats] = useState(null)
   const [revenue, setRevenue] = useState(null)
   const [flightStatus, setFlightStatus] = useState(null)
@@ -70,10 +72,10 @@ export default function CompanyDashboard() {
     <div className="max-w-6xl mx-auto space-y-6 animate-[fadeIn_0.3s_ease-out]">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard Gerencial</h1>
+          <h1 className="text-2xl font-bold text-white">{t('dashboard.title')}</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            {globalStatus === 'aligned' ? '✓ 3 nodos sincronizados' :
-             globalStatus === 'conflict' ? '⚠ Conflicto en progreso' : '⏳ Propagando cambios'}
+            {globalStatus === 'aligned' ? `✓ ${t('dashboard.nodes_synced')}` :
+             globalStatus === 'conflict' ? `⚠ ${t('dashboard.conflict')}` : `⏳ ${t('dashboard.propagating')}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -81,7 +83,7 @@ export default function CompanyDashboard() {
           <button onClick={loadAll}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700
               text-slate-400 hover:text-white text-sm transition-colors">
-            ↻ Actualizar
+            ↻ {t('dashboard.refresh')}
           </button>
         </div>
       </div>
@@ -104,14 +106,14 @@ export default function CompanyDashboard() {
         <div className="space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <KPI label="Ingresos Totales" value={`$${(revenue?.total || 0).toLocaleString()}`} color="text-green-400" trend={8} />
-            <KPI label="Primera Clase" value={`$${(revenue?.first || 0).toLocaleString()}`} color="text-amber-400" trend={12} />
-            <KPI label="Turista" value={`$${(revenue?.economy || 0).toLocaleString()}`} color="text-blue-400" trend={5} />
+            <KPI label={t('dashboard.total_revenue')} value={`$${(revenue?.total || 0).toLocaleString()}`} color="text-green-400" trend={8} t={t} />
+            <KPI label={t('dashboard.first_class')} value={`$${(revenue?.first || 0).toLocaleString()}`} color="text-amber-400" trend={12} t={t} />
+            <KPI label={t('dashboard.economy')} value={`$${(revenue?.economy || 0).toLocaleString()}`} color="text-blue-400" trend={5} t={t} />
           </div>
 
           {/* Bar chart */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-            <h3 className="text-white font-semibold mb-4">Top 10 rutas por ingresos</h3>
+            <h3 className="text-white font-semibold mb-4">{t('dashboard.top_routes')}</h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={topRoutes.slice(0, 10)}>
                 <XAxis dataKey="route" tick={{ fill: '#94a3b8', fontSize: 11 }} />
@@ -147,7 +149,7 @@ export default function CompanyDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Donut */}
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">Distribución de asientos</h3>
+              <h3 className="text-white font-semibold mb-4">{t('dashboard.seat_distribution')}</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
@@ -167,7 +169,7 @@ export default function CompanyDashboard() {
 
             {/* Flight status table */}
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">Vuelos por estado</h3>
+              <h3 className="text-white font-semibold mb-4">{t('dashboard.flights_by_status')}</h3>
               <div className="space-y-2">
                 {flightStatus && Object.entries(flightStatus).map(([status, count]) => (
                   <div key={status} className="flex items-center justify-between">
@@ -177,7 +179,7 @@ export default function CompanyDashboard() {
                     <span className="text-white font-bold">{count}</span>
                   </div>
                 ))}
-                {!flightStatus && <div className="text-slate-500 text-sm">Sin datos</div>}
+                {!flightStatus && <div className="text-slate-500 text-sm">{t('dashboard.no_data')}</div>}
               </div>
             </div>
           </div>
@@ -189,7 +191,7 @@ export default function CompanyDashboard() {
         <div className="space-y-6">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-700">
-              <h3 className="text-white font-semibold">Aeropuertos del sistema</h3>
+              <h3 className="text-white font-semibold">{t('dashboard.airports_map')}</h3>
             </div>
             <MapContainer center={[20, 10]} zoom={2} style={{ height: '400px' }} className="z-0">
               <TileLayer
@@ -218,7 +220,7 @@ export default function CompanyDashboard() {
 
           {/* Top routes */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-            <h3 className="text-white font-semibold mb-4">Top 10 rutas más solicitadas</h3>
+            <h3 className="text-white font-semibold mb-4">{t('dashboard.top_routes_req')}</h3>
             <div className="space-y-2">
               {topRoutes.slice(0, 10).map((r, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -233,7 +235,7 @@ export default function CompanyDashboard() {
                   <span className="text-slate-300 text-sm">{r.count || r.bookings || 0}</span>
                 </div>
               ))}
-              {topRoutes.length === 0 && <div className="text-slate-500 text-sm text-center py-4">Sin datos</div>}
+              {topRoutes.length === 0 && <div className="text-slate-500 text-sm text-center py-4">{t('dashboard.no_data')}</div>}
             </div>
           </div>
         </div>
@@ -274,7 +276,7 @@ export default function CompanyDashboard() {
 
           {/* Passenger search */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-            <h3 className="text-white font-semibold mb-4">Buscar pasajero por pasaporte</h3>
+            <h3 className="text-white font-semibold mb-4">{t('dashboard.search_passenger')}</h3>
             <div className="flex gap-3">
               <input
                 value={passportQ}
@@ -316,7 +318,7 @@ export default function CompanyDashboard() {
   )
 }
 
-function KPI({ label, value, color, trend = null }) {
+function KPI({ label, value, color, trend = null, t }) {
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-colors">
       <div className="text-slate-400 text-xs mb-2">{label}</div>
@@ -324,7 +326,7 @@ function KPI({ label, value, color, trend = null }) {
       {trend !== null && (
         <div className={`flex items-center gap-1 text-xs ${trend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-          {trend >= 0 ? '+' : ''}{trend}% vs ayer
+          {trend >= 0 ? '+' : ''}{trend}% {t ? t('dashboard.vs_yesterday') : 'vs ayer'}
         </div>
       )}
     </div>

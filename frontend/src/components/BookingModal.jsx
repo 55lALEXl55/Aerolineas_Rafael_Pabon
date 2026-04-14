@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Clock, User, CreditCard, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
-import { reserveSeat, buySeat, refundTicket, cancelReservation, getPassengerByPassport } from '../api'
+import { X, Clock, User, CreditCard, AlertCircle, CheckCircle, Loader2, Download, Wallet } from 'lucide-react'
+import { reserveSeat, buySeat, refundTicket, cancelReservation, getPassengerByPassport, searchPassengersByPrefix } from '../api'
 import { useBookingStore } from '../stores/bookingStore'
 import { epochToTime } from '../utils/epochUtils'
 import { getAirportTz } from '../utils/geoRouter'
@@ -15,6 +16,7 @@ const NODE_INFO = {
 
 export default function BookingModal({ seat, flight, onClose, onConfirm }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { sessionToken, activeNode, setLastTicketId } = useBookingStore()
   const [passport, setPassport] = useState('')
   const [passengerName, setPassengerName] = useState('')
@@ -26,6 +28,10 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
   const [countdown, setCountdown] = useState(null)
   const [now, setNow] = useState(Date.now())
   const [showSuccess, setShowSuccess] = useState(false)
+  const [ticketId, setTicketId] = useState(null)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const debounceRef = useRef(null)
 
   const status = seat?.status || 'AVAILABLE'
@@ -50,33 +56,56 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
     }
   }, [status, seat?.locked_until])
 
-  // Debounced passport lookup (400ms)
+  // Debounced passport lookup + prefix-search autocomplete (400ms)
   const handlePassportChange = (value) => {
     const v = value.toUpperCase()
     setPassport(v)
     setPassengerFound(false)
     setPassengerName('')
+    setSuggestions([])
+    setShowSuggestions(false)
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (v.length < 6) return
+    if (v.length < 2) return
 
     debounceRef.current = setTimeout(async () => {
       setLookingUp(true)
       try {
-        const data = await getPassengerByPassport(v)
-        if (data?.name || data?.full_name) {
-          const name = data.name || data.full_name
-          setPassengerName(name)
-          setPassengerFound(true)
+        // Prefix search (≥2 chars) for autocomplete dropdown
+        if (v.length >= 2 && v.length < 9) {
+          const res = await searchPassengersByPrefix(v)
+          const list = res?.passengers || (Array.isArray(res) ? res : [])
+          if (list.length) {
+            setSuggestions(list)
+            setShowSuggestions(true)
+          }
         }
-      } catch { /* not found — user can type name */ }
+        // Exact lookup (≥6 chars) to auto-fill name
+        if (v.length >= 6) {
+          const data = await getPassengerByPassport(v)
+          if (data?.full_name) {
+            setPassengerName(data.full_name)
+            setPassengerFound(true)
+            setSuggestions([])
+            setShowSuggestions(false)
+          }
+        }
+      } catch { /* not found */ }
       finally { setLookingUp(false) }
     }, 400)
   }
 
+  const selectSuggestion = (pax) => {
+    setPassport(pax.passport_number)
+    setPassengerName(pax.full_name || '')
+    setPassengerFound(true)
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
   const handleAction = async (action) => {
     if (!passport && action !== 'refund') {
-      setError('Ingresa tu número de pasaporte')
+      setError(t('booking.enter_passport'))
       return
     }
     setLoading(true)
@@ -96,11 +125,23 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
       else if (action === 'cancel') result = await cancelReservation(seat?.booking_id)
       else if (action === 'refund') result = await refundTicket(seat?.ticket_id)
 
-      if (result?.ticket_id) setLastTicketId(result.ticket_id)
+      if (result?.ticket_id) {
+        setLastTicketId(result.ticket_id)
+        setTicketId(result.ticket_id)
+      }
 
-      setShowSuccess(true)
-      setSuccess(t('booking.success'))
-      setTimeout(() => { onConfirm?.(); onClose?.() }, 1400)
+      if ((action === 'buy' || action === 'confirm') && result?.ticket_id) {
+        // Redirigir directo al boarding pass
+        onConfirm?.()
+        onClose?.()
+        navigate(`/ticket/${result.ticket_id}`)
+      } else if ((action === 'buy' || action === 'confirm') && result?.purchased) {
+        setShowPurchaseModal(true)
+      } else {
+        setShowSuccess(true)
+        setSuccess(t('booking.success'))
+        setTimeout(() => { onConfirm?.(); onClose?.() }, 1400)
+      }
     } catch (e) {
       setError(e.message || t('booking.error'))
     } finally {
@@ -111,6 +152,24 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
   const originTz = getAirportTz(flight?.origin)
   const destTz   = getAirportTz(flight?.destination)
   const nowSec   = Math.floor(now / 1000)
+
+  const handlePurchaseModalClose = () => {
+    setShowPurchaseModal(false)
+    onConfirm?.()
+    onClose?.()
+  }
+
+  if (showPurchaseModal) {
+    return (
+      <SuccessModal
+        ticketId={ticketId}
+        flight={flight}
+        seat={seat}
+        onClose={handlePurchaseModalClose}
+        t={t}
+      />
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4
@@ -136,7 +195,7 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
           {/* Processing node indicator */}
           <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border ${nodeInfo.bg}`}>
             <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
-            <span className="text-slate-400">Procesando en:</span>
+            <span className="text-slate-400">{t('booking.processing_node')}</span>
             <span className={`font-semibold ${nodeInfo.color}`}>{nodeInfo.emoji} {nodeInfo.label}</span>
           </div>
 
@@ -171,7 +230,7 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
               <div>
                 <p className="text-gray-300 text-sm">{t('booking.locked_msg')}</p>
                 {countdown !== null && (
-                  <p className="text-gray-400 text-xs font-mono mt-0.5">Disponible en: {countdown}s</p>
+                  <p className="text-gray-400 text-xs font-mono mt-0.5">{t('booking.available_in')} {countdown}s</p>
                 )}
               </div>
             </div>
@@ -189,6 +248,7 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
                   <input
                     value={passport}
                     onChange={e => handlePassportChange(e.target.value)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                     placeholder="AB123456"
                     className="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-white
                       focus:outline-none focus:border-blue-500 font-mono transition-colors pr-10"
@@ -198,11 +258,28 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
                     {lookingUp && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
                     {!lookingUp && passengerFound && <CheckCircle className="w-4 h-4 text-green-400" />}
                   </div>
+                  {/* Autocomplete dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-600
+                                   rounded-xl shadow-xl overflow-hidden">
+                      {suggestions.map((s) => (
+                        <li
+                          key={s.passport_number}
+                          onMouseDown={() => selectSuggestion(s)}
+                          className="px-3 py-2.5 cursor-pointer hover:bg-slate-700 transition-colors flex items-center gap-2 text-sm"
+                        >
+                          <User className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="font-mono text-blue-300">{s.passport_number}</span>
+                          <span className="text-slate-300 truncate">{s.full_name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 {passengerFound && (
                   <p className="text-green-400 text-xs mt-1.5 flex items-center gap-1 animate-[fadeIn_0.2s_ease-out]">
                     <CheckCircle className="w-3 h-3" />
-                    Pasajero registrado: <span className="font-semibold">{passengerName}</span>
+                    {t('booking.registered_passenger')} <span className="font-semibold">{passengerName}</span>
                   </p>
                 )}
               </div>
@@ -284,6 +361,105 @@ export default function BookingModal({ seat, flight, onClose, onConfirm }) {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal de éxito post-compra ───────────────────────────────────────────────
+function SuccessModal({ ticketId, flight, seat, onClose, t }) {
+  const BASE = import.meta.env.VITE_API_URL || ''
+
+  const downloadPDF = () => {
+    window.open(`${BASE}/api/tickets/${ticketId}/pdf`, '_blank')
+  }
+
+  const openBoardingPass = () => {
+    window.open(`/boarding/${ticketId}`, '_blank')
+  }
+
+  const depEpoch = flight?.departure_epoch || flight?.flight_date_epoch || 0
+  const durSec   = (flight?.duration_hours || 0) * 3600 || (flight?.duration_minutes || 0) * 60
+  const arrEpoch = depEpoch + durSec
+  const originTz = getAirportTz(flight?.origin)
+  const destTz   = getAirportTz(flight?.destination)
+
+  return (
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4
+                    animate-[fadeIn_0.15s_ease-out]">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl
+                      animate-[fadeSlideUp_0.2s_ease-out] p-8">
+        {/* Checkmark animado */}
+        <div className="w-16 h-16 bg-green-900/40 border-2 border-green-500 rounded-full
+                        flex items-center justify-center mx-auto mb-4 animate-bounce">
+          <CheckCircle className="w-8 h-8 text-green-400" />
+        </div>
+
+        <h2 className="text-2xl font-bold text-white text-center mb-1">
+          {t('booking.purchase_success')}
+        </h2>
+        <p className="text-slate-400 text-sm text-center mb-6">
+          Ticket #{ticketId}
+        </p>
+
+        {/* Datos del boleto */}
+        <div className="bg-slate-900 rounded-xl p-4 mb-6 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">{t('flight.origin')} → {t('flight.destination')}</span>
+            <span className="text-white font-semibold">
+              {flight?.origin} → {flight?.destination}
+            </span>
+          </div>
+          {depEpoch > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Salida / Llegada</span>
+              <span className="text-white font-mono text-xs">
+                {epochToTime(depEpoch, originTz)} → {epochToTime(arrEpoch, destTz)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">{t('booking.seat')}</span>
+            <span className="text-white font-mono font-semibold">{seat?.seat_number}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">{t('flight.class')}</span>
+            <span className="text-white font-semibold">
+              {seat?.seat_class === 'FIRST' ? '👑 ' + t('seat.first') : '🪑 ' + t('seat.economy')}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm border-t border-slate-700 pt-2 mt-2">
+            <span className="text-slate-400">{t('booking.price')}</span>
+            <span className="text-blue-400 font-bold text-lg">${seat?.price?.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div className="flex gap-3 mb-3">
+          <button
+            onClick={downloadPDF}
+            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500
+              text-white py-3 rounded-xl font-semibold transition-all hover:shadow-lg
+              hover:shadow-blue-900/40"
+          >
+            <Download className="w-4 h-4" />
+            {t('booking.download_pdf')}
+          </button>
+          <button
+            onClick={openBoardingPass}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600
+              text-white py-3 rounded-xl font-semibold transition-all"
+          >
+            <Wallet className="w-4 h-4" />
+            Boarding Digital
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full py-2 text-slate-400 hover:text-white transition-colors text-sm"
+        >
+          {t('common.close')}
+        </button>
       </div>
     </div>
   )

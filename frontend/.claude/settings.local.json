@@ -59,7 +59,22 @@
       "Bash(python:*)",
       "Bash(docker-compose:*)",
       "Bash(docker cp:*)",
-      "Bash(MSYS_NO_PATHCONV=1 docker exec ms-flights:*)"
+      "Bash(MSYS_NO_PATHCONV=1 docker exec ms-flights:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(wait)",
+      "Bash(cmd.exe:*)",
+      "Bash(winpty docker:*)",
+      "Bash(powershell -Command \"docker exec sqlserver1 cmd /c 'dir'\")",
+      "Bash(powershell:*)",
+      "Bash(\\\\\"seat_id)",
+      "Bash(\\\\\"flight_id)",
+      "Bash(\\\\\"session_token)",
+      "Bash(\\\\\"test-lock-123)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(node --input-type=module)",
+      "Bash(grep -A5 'set $upstream' D:/Distribuidos/Practica3/Aerolineas_Rafael_Pabon/nginx/nginx.conf)",
+      "Bash(grep:*)"
     ]
   }
 }

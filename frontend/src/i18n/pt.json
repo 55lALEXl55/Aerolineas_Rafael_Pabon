@@ -3,7 +3,11 @@
     "search": "Buscar Voos",
     "dashboard": "Painel",
     "queries": "Consultas",
-    "lang": "Idioma"
+    "lang": "Idioma",
+    "back": "Voltar",
+    "admin": "Vista Admin",
+    "client": "Vista Cliente",
+    "ticket": "Meu bilhete"
   },
   "seat": {
     "available": "Disponível",
@@ -14,7 +18,16 @@
     "first": "Primeira Classe",
     "economy": "Econômica",
     "free": "Livres",
-    "total": "Total"
+    "total": "Total",
+    "map_title": "Mapa de assentos",
+    "map_hint": "Clique em um assento azul ou amarelo para continuar",
+    "multi_on": "Multisseleção ativa",
+    "multi_off": "Multisseleção",
+    "multi_hint": "Clique em assentos disponíveis para adicioná-los ao carrinho",
+    "cart_title": "Carrinho",
+    "cart_clear": "Limpar",
+    "cart_total": "Total",
+    "cart_buy": "Comprar {{count}} assento(s)"
   },
   "booking": {
     "reserve": "Reservar",
@@ -30,7 +43,14 @@
     "locked_msg": "Assento temporariamente bloqueado. Tente novamente em instantes.",
     "success": "Operação bem-sucedida",
     "error": "Falha na operação",
-    "full_name": "Nome completo"
+    "full_name": "Nome completo",
+    "processing_node": "Processando em:",
+    "available_in": "Disponível em:",
+    "registered_passenger": "Passageiro registrado:",
+    "enter_passport": "Insira seu número de passaporte",
+    "purchase_success": "Compra realizada!",
+    "download_pdf": "Baixar PDF",
+    "add_wallet": "Adicionar ao Wallet"
   },
   "flight": {
     "origin": "Origem",
@@ -46,7 +66,17 @@
     "arrival": "Chegada",
     "aircraft": "Aeronave",
     "no_results": "Nenhum voo encontrado",
-    "searching": "Buscando voos..."
+    "searching": "Buscando voos...",
+    "select_airport": "Selecionar aeroporto",
+    "search_airport": "Pesquisar cidade ou código...",
+    "no_airports": "Sem resultados",
+    "cheapest": "Mais baratas",
+    "fastest": "Mais rápidas",
+    "by_price": "Ordenadas por preço",
+    "by_time": "Ordenadas por duração",
+    "via": "via",
+    "try_other": "Tente outra data ou par de cidades",
+    "node_connected": "Conectado a:"
   },
   "dashboard": {
     "revenue": "Receita",
@@ -58,7 +88,33 @@
     "operations": "Operações",
     "geography": "Geografia",
     "total": "Total",
-    "node": "Nó"
+    "node": "Nó",
+    "title": "Painel Gerencial",
+    "title_short": "Painel",
+    "nodes_synced": "3 nós sincronizados",
+    "conflict": "Conflito em andamento",
+    "propagating": "Propagando alterações",
+    "refresh": "Atualizar",
+    "tab_sales": "Vendas",
+    "tab_ops": "Operações",
+    "tab_geo": "Geografia",
+    "tab_fleet": "Frota",
+    "total_revenue": "Receita Total",
+    "first_class": "Primeira Classe",
+    "economy": "Econômica",
+    "top_routes": "Top 10 rotas por receita",
+    "search_passenger": "Buscar passageiro por passaporte",
+    "seat_distribution": "Distribuição de assentos",
+    "flights_by_status": "Voos por status",
+    "no_data": "Sem dados",
+    "airports_map": "Aeroportos do sistema",
+    "top_routes_req": "Top 10 rotas mais solicitadas",
+    "vs_yesterday": "vs ontem"
+  },
+  "admin": {
+    "sync": "Sincronização",
+    "queries": "Consultas",
+    "flights": "Voos"
   },
   "status": {
     "SCHEDULED": "Programado",
@@ -95,5 +151,9 @@
     "of": "de",
     "hours": "h",
     "minutes": "min"
+  },
+  "error": {
+    "select_origin_dest": "Selecione origem e destino",
+    "same_airport": "Origem e destino devem ser diferentes"
   }
 }

@@ -2,9 +2,143 @@ import { useState, useEffect, useRef } from 'react'
 import { getDashboardSyncStatus, getDashboardSyncLog } from '../../api'
 import { useSyncStore } from '../../stores/syncStore'
 import { epochToLocal } from '../../utils/epochUtils'
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, Clock, Zap, Database, Map, RotateCcw } from 'lucide-react'
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, Clock, Zap, Database, Map, RotateCcw, Terminal, Pause, Play } from 'lucide-react'
 
 const BASE = import.meta.env.VITE_API_URL || ''
+
+const LEVEL_STYLES = {
+  ERROR:    'text-red-400',
+  WARNING:  'text-yellow-400',
+  WARN:     'text-yellow-400',
+  INFO:     'text-green-400',
+  DEBUG:    'text-cyan-400',
+}
+const LEVEL_DOT = {
+  ERROR: 'bg-red-500', WARNING: 'bg-yellow-400', WARN: 'bg-yellow-400',
+  INFO: 'bg-green-400', DEBUG: 'bg-cyan-400',
+}
+const SERVICE_COLORS = {
+  'ms-flights':   'text-blue-400',
+  'ms-bookings':  'text-purple-400',
+  'ms-routes':    'text-green-400',
+  'ms-sync':      'text-yellow-400',
+  'ms-tickets':   'text-orange-400',
+  'ms-dashboard': 'text-pink-400',
+}
+
+function LiveLogs() {
+  const [logs, setLogs] = useState([])
+  const [nextIndex, setNextIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [filter, setFilter] = useState('')
+  const containerRef = useRef(null)
+  const intervalRef = useRef(null)
+
+  const fetchLogs = async (idx) => {
+    try {
+      const res = await fetch(`${BASE}/api/sync/logs-stream?since=${idx}`)
+      if (!res.ok) return idx
+      const data = await res.json()
+      if (data.logs?.length) {
+        setLogs(prev => [...prev, ...data.logs].slice(-300))
+        return data.next_index
+      }
+      return data.next_index ?? idx
+    } catch {
+      return idx
+    }
+  }
+
+  useEffect(() => {
+    let idx = 0
+    const poll = async () => {
+      if (!paused) idx = await fetchLogs(idx)
+      setNextIndex(idx)
+    }
+    poll()
+    intervalRef.current = setInterval(poll, 2000)
+    return () => clearInterval(intervalRef.current)
+  }, [paused])
+
+  useEffect(() => {
+    if (!paused && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight
+    }
+  }, [logs, paused])
+
+  const visible = filter
+    ? logs.filter(l =>
+        (l.message || '').toLowerCase().includes(filter.toLowerCase()) ||
+        (l.service || '').toLowerCase().includes(filter.toLowerCase())
+      )
+    : logs
+
+  const clearLogs = () => setLogs([])
+
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800">
+        <h3 className="text-white font-semibold flex items-center gap-2 text-sm">
+          <Terminal className="w-4 h-4 text-green-400" />
+          LiveLogs — Microservicios
+          <span className="text-xs bg-green-900/40 text-green-400 px-1.5 py-0.5 rounded-full font-mono">
+            polling 2s
+          </span>
+          {!paused && <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
+        </h3>
+        <div className="flex items-center gap-2">
+          <input
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            placeholder="Filtrar..."
+            className="text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-300
+              focus:outline-none focus:border-blue-500 w-32"
+          />
+          <button
+            onClick={() => setPaused(p => !p)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors
+              ${paused ? 'bg-green-700 text-white' : 'bg-slate-700 text-slate-300 hover:text-white'}`}
+          >
+            {paused ? <><Play className="w-3 h-3" /> Reanudar</> : <><Pause className="w-3 h-3" /> Pausar</>}
+          </button>
+          <button
+            onClick={clearLogs}
+            className="px-2 py-1 rounded-lg text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 transition-colors"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+
+      {/* Log stream */}
+      <div ref={containerRef} className="h-64 overflow-y-auto font-mono text-xs p-3 space-y-0.5">
+        {visible.length === 0 && (
+          <div className="text-slate-600 text-center py-8">
+            {logs.length === 0 ? 'Esperando logs de microservicios...' : 'Sin resultados para el filtro'}
+          </div>
+        )}
+        {visible.map((log, i) => {
+          const level = (log.level || 'INFO').toUpperCase()
+          const svc   = log.service || '?'
+          const ts    = log.timestamp
+            ? new Date(log.timestamp * 1000).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            : '—'
+          return (
+            <div key={i} className="flex items-start gap-2 leading-relaxed hover:bg-slate-800/50 rounded px-1 py-0.5">
+              <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${LEVEL_DOT[level] || 'bg-slate-500'}`} />
+              <span className="text-slate-600 shrink-0 w-20">{ts}</span>
+              <span className={`shrink-0 w-28 ${SERVICE_COLORS[svc] || 'text-slate-400'}`}>{svc}</span>
+              <span className={`shrink-0 w-14 ${LEVEL_STYLES[level] || 'text-slate-400'}`}>[{level}]</span>
+              <span className="text-slate-300 break-all">{log.message || '—'}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 const getGraphStatus = (epoch) =>
   fetch(`${BASE}/api/routes/graph-status${epoch ? `?date_epoch=${epoch}` : ''}`)
     .then(r => r.json()).catch(() => null)
@@ -335,6 +469,9 @@ export default function AdminSync() {
           </div>
         )}
       </div>
+
+      {/* LiveLogs — microservice HTTP logs */}
+      <LiveLogs />
 
       {/* Event log */}
       <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Search, Calendar, ArrowLeftRight, Clock, Tag, DollarSign, Plane, ChevronDown } from 'lucide-react'
 import dayjs from 'dayjs'
 import { searchFlights, findRoute, getDatasetInfo } from '../api'
-import { getAirportList, getAirportName, getAirportFlag } from '../utils/geoRouter'
+import { getAirportList, getAirportName, getAirportFlag, getAirportTz } from '../utils/geoRouter'
 import { epochToTime, durationStr } from '../utils/epochUtils'
 import { getAircraftModel } from '../utils/seatLayout'
 import { useBookingStore } from '../stores/bookingStore'
@@ -21,6 +21,7 @@ const NODE_TAG = {
 
 // ─── Airport combobox ─────────────────────────────────────────────────────────
 function AirportCombobox({ label, value, onChange, exclude }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const ref = useRef()
@@ -70,7 +71,7 @@ function AirportCombobox({ label, value, onChange, exclude }) {
         ) : (
           <>
             <Plane className="w-4 h-4 text-slate-500 shrink-0" />
-            <span className="text-slate-500 text-sm flex-1">Seleccionar aeropuerto</span>
+            <span className="text-slate-500 text-sm flex-1">{t('flight.select_airport')}</span>
             <ChevronDown className="w-4 h-4 text-slate-500" />
           </>
         )}
@@ -84,7 +85,7 @@ function AirportCombobox({ label, value, onChange, exclude }) {
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar ciudad o código..."
+              placeholder={t('flight.search_airport')}
               className="w-full bg-slate-900 text-white text-sm px-3 py-1.5 rounded-lg
                 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-500"
             />
@@ -112,7 +113,7 @@ function AirportCombobox({ label, value, onChange, exclude }) {
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="px-4 py-6 text-center text-slate-500 text-sm">Sin resultados</div>
+              <div className="px-4 py-6 text-center text-slate-500 text-sm">{t('flight.no_airports')}</div>
             )}
           </div>
         </div>
@@ -122,7 +123,7 @@ function AirportCombobox({ label, value, onChange, exclude }) {
 }
 
 // ─── Route card (direct or connecting) ───────────────────────────────────────
-function RouteCard({ route, onClick, delay = 0 }) {
+function RouteCard({ route, onClick, delay = 0, seatClass = 'ECONOMY' }) {
   const { t } = useTranslation()
   const flights = route.flights || []
   const first = flights[0]
@@ -132,6 +133,15 @@ function RouteCard({ route, onClick, delay = 0 }) {
   const stops = [first.origin, ...flights.map(f => f.destination)]
   const stopovers = stops.slice(1, -1)
   const model = getAircraftModel(first.aircraft_id)
+
+  const arrivalEpoch = last.arrival_epoch ||
+    (last.departure_epoch + (last.duration_minutes || 0) * 60)
+
+  const displayCost = route.total_cost != null
+    ? route.total_cost
+    : (seatClass === 'FIRST'
+        ? (first.price_first || first.first_class_price || first.price_economy || 0)
+        : (first.price_economy || first.economy_price || 0))
 
   return (
     <div
@@ -148,7 +158,10 @@ function RouteCard({ route, onClick, delay = 0 }) {
           <div className="text-center shrink-0">
             <div className="text-2xl font-bold text-white">{first.origin}</div>
             <div className="text-xs text-slate-400">{getAirportFlag(first.origin)}</div>
-            <div className="text-xs text-slate-500 font-mono">{epochToTime(first.departure_epoch)}</div>
+            <div className="text-xs text-slate-500 font-mono">
+              {epochToTime(first.departure_epoch, getAirportTz(first.origin))}
+              <span className="ml-0.5 text-slate-600">{first.origin}</span>
+            </div>
           </div>
 
           <div className="flex-1 flex flex-col items-center min-w-0">
@@ -168,24 +181,27 @@ function RouteCard({ route, onClick, delay = 0 }) {
             </div>
             {stopovers.length > 0 ? (
               <div className="text-xs text-amber-400 font-medium">
-                vía {stopovers.join(', ')}
+                {t('flight.via')} {stopovers.join(', ')}
               </div>
             ) : (
-              <div className="text-xs text-green-400">Directo</div>
+              <div className="text-xs text-green-400">{t('flight.direct')}</div>
             )}
           </div>
 
           <div className="text-center shrink-0">
             <div className="text-2xl font-bold text-white">{last.destination}</div>
             <div className="text-xs text-slate-400">{getAirportFlag(last.destination)}</div>
-            <div className="text-xs text-slate-500 font-mono">{epochToTime(last.arrival_epoch)}</div>
+            <div className="text-xs text-slate-500 font-mono">
+              {epochToTime(arrivalEpoch, getAirportTz(last.destination))}
+              <span className="ml-0.5 text-slate-600">{last.destination}</span>
+            </div>
           </div>
         </div>
 
         {/* Price + info */}
         <div className="text-right shrink-0">
           <div className="text-3xl font-bold text-blue-400">
-            ${(route.total_cost ?? first.price_economy ?? 0).toLocaleString()}
+            ${displayCost.toLocaleString()}
           </div>
           <div className="text-xs text-slate-400">{model}</div>
           <div className="text-xs text-slate-500">{first.flight_number}</div>
@@ -224,7 +240,7 @@ function SkeletonCard() {
 export default function FlightSearch() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { setSelectedFlight, activeNode } = useBookingStore()
+  const { setSelectedFlight, activeNode, setSelectedClass } = useBookingStore()
 
   const [datasetRange, setDatasetRange] = useState({
     start_date: '2026-03-25',
@@ -233,7 +249,7 @@ export default function FlightSearch() {
   const [form, setForm] = useState({
     origin: '',
     destination: '',
-    date: '2026-03-25',
+    date: '2026-03-30',
     cls: 'ECONOMY',
   })
   const [cheapest, setCheapest] = useState([])
@@ -259,14 +275,16 @@ export default function FlightSearch() {
 
   // Wrap a direct flight as a route object
   const toRoute = (f) => ({
-    total_cost: f.price_economy || f.economy_price || 0,
+    total_cost: form.cls === 'FIRST'
+      ? (f.price_first || f.first_class_price || f.price_economy || 0)
+      : (f.price_economy || f.economy_price || 0),
     total_minutes: f.duration_minutes || 0,
     flights: [f],
   })
 
   const handleSearch = async () => {
-    if (!form.origin || !form.destination) { setError('Selecciona origen y destino'); return }
-    if (form.origin === form.destination)   { setError('El origen y destino deben ser diferentes'); return }
+    if (!form.origin || !form.destination) { setError(t('error.select_origin_dest')); return }
+    if (form.origin === form.destination)   { setError(t('error.same_airport')); return }
 
     setLoading(true)
     setError('')
@@ -334,11 +352,38 @@ export default function FlightSearch() {
   }
 
   const handleSelectRoute = (route) => {
-    const flight = route.flights?.[0]
-    if (!flight) return
-    setSelectedFlight(flight)
-    setMapRoute(null)
-    navigate(`/vuelo/${flight.flight_id}/asientos`)
+    const flights = route.flights || []
+    if (!flights.length) return
+
+    if (flights.length === 1) {
+      // Vuelo directo
+      const flight = flights[0]
+      if (!flight?.flight_id) return
+      setSelectedFlight(flight)
+      setSelectedClass(form.cls)
+      setMapRoute(null)
+      navigate(`/vuelo/${flight.flight_id}/asientos`)
+    } else {
+      // Ruta con escala — seleccionar automáticamente el primer leg real
+      const firstRealLeg = flights.find(leg => leg.flight_id && !leg.theoretical)
+      if (!firstRealLeg) {
+        alert('No hay asientos disponibles para esta ruta en esta fecha.')
+        return
+      }
+      setSelectedFlight(firstRealLeg)
+      setSelectedClass(form.cls)
+      setMapRoute(null)
+      navigate(`/vuelo/${firstRealLeg.flight_id}/asientos`, {
+        state: {
+          route,
+          isConnecting: true,
+          layoverAirport: route.layover_airport || flights[0]?.destination,
+          totalPrice: route.total_cost,
+          totalTime: route.total_minutes,
+          allLegs: flights,
+        }
+      })
+    }
   }
 
   const NODE_LABELS = { 1: 'DB1 — América 🌎', 2: 'DB2 — Europa/MO 🌍', 3: 'DB3 — Asia 🌏' }
@@ -362,7 +407,7 @@ export default function FlightSearch() {
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <p className="text-slate-400 text-xs mb-1">Conectado a:</p>
+            <p className="text-slate-400 text-xs mb-1">{t('flight.node_connected')}</p>
             <p className={`font-semibold text-sm ${NODE_COLORS[activeNode]}`}>{NODE_LABELS[activeNode]}</p>
           </div>
           <NodeSelector />
@@ -415,6 +460,9 @@ export default function FlightSearch() {
                 className="bg-transparent text-white flex-1 outline-none text-sm"
               />
             </div>
+            <p className="text-xs text-amber-500 mt-1">
+              ⚠️ Vuelos disponibles: {dayjs(datasetRange.start_date).format('D MMM')} — {dayjs(datasetRange.end_date).format('D MMM YYYY')}
+            </p>
           </div>
 
           {/* Class */}
@@ -441,7 +489,7 @@ export default function FlightSearch() {
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Search className="w-4 h-4" />
-              {loading ? 'Buscando...' : t('flight.search')}
+              {loading ? t('flight.searching') : t('flight.search')}
             </button>
           </div>
         </div>
@@ -463,7 +511,7 @@ export default function FlightSearch() {
             <div className="text-center py-16 text-slate-500">
               <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-lg">{t('flight.no_results')}</p>
-              <p className="text-sm mt-1 text-slate-600">Intenta otra fecha o par de ciudades</p>
+              <p className="text-sm mt-1 text-slate-600">{t('flight.try_other')}</p>
             </div>
           )}
 
@@ -472,12 +520,12 @@ export default function FlightSearch() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-5 h-5 text-green-400" />
-                <h2 className="text-white font-semibold text-lg">Más económicas</h2>
-                <span className="text-slate-500 text-sm">— Ordenadas por precio</span>
+                <h2 className="text-white font-semibold text-lg">{t('flight.cheapest')}</h2>
+                <span className="text-slate-500 text-sm">— {t('flight.by_price')}</span>
               </div>
               <div className="space-y-3">
                 {cheapest.map((r, i) => (
-                  <RouteCard key={i} route={r} onClick={handleRouteClick} delay={i * 60} />
+                  <RouteCard key={i} route={r} onClick={handleRouteClick} delay={i * 60} seatClass={form.cls} />
                 ))}
               </div>
             </div>
@@ -488,12 +536,12 @@ export default function FlightSearch() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-5 h-5 text-blue-400" />
-                <h2 className="text-white font-semibold text-lg">Más rápidas</h2>
-                <span className="text-slate-500 text-sm">— Ordenadas por duración</span>
+                <h2 className="text-white font-semibold text-lg">{t('flight.fastest')}</h2>
+                <span className="text-slate-500 text-sm">— {t('flight.by_time')}</span>
               </div>
               <div className="space-y-3">
                 {fastest.map((r, i) => (
-                  <RouteCard key={i} route={r} onClick={handleRouteClick} delay={i * 60 + 120} />
+                  <RouteCard key={i} route={r} onClick={handleRouteClick} delay={i * 60 + 120} seatClass={form.cls} />
                 ))}
               </div>
             </div>
@@ -509,6 +557,7 @@ export default function FlightSearch() {
           onSelect={handleSelectRoute}
         />
       )}
+
     </div>
   )
 }

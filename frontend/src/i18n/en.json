@@ -3,7 +3,11 @@
     "search": "Search Flights",
     "dashboard": "Dashboard",
     "queries": "Queries",
-    "lang": "Language"
+    "lang": "Language",
+    "back": "Back",
+    "admin": "Admin View",
+    "client": "Client View",
+    "ticket": "My ticket"
   },
   "seat": {
     "available": "Available",
@@ -14,7 +18,16 @@
     "first": "First Class",
     "economy": "Economy",
     "free": "Free",
-    "total": "Total"
+    "total": "Total",
+    "map_title": "Seat map",
+    "map_hint": "Click on a blue or yellow seat to continue",
+    "multi_on": "Multi-select active",
+    "multi_off": "Multi-select",
+    "multi_hint": "Click on available seats to add them to your cart",
+    "cart_title": "Shopping cart",
+    "cart_clear": "Clear",
+    "cart_total": "Total",
+    "cart_buy": "Buy {{count}} seat(s)"
   },
   "booking": {
     "reserve": "Reserve",
@@ -30,7 +43,14 @@
     "locked_msg": "Seat temporarily locked. Please try again in a moment.",
     "success": "Operation successful",
     "error": "Operation failed",
-    "full_name": "Full name"
+    "full_name": "Full name",
+    "processing_node": "Processing at:",
+    "available_in": "Available in:",
+    "registered_passenger": "Registered passenger:",
+    "enter_passport": "Enter your passport number",
+    "purchase_success": "Purchase successful!",
+    "download_pdf": "Download PDF",
+    "add_wallet": "Add to Wallet"
   },
   "flight": {
     "origin": "Origin",
@@ -46,7 +66,17 @@
     "arrival": "Arrival",
     "aircraft": "Aircraft",
     "no_results": "No flights found",
-    "searching": "Searching flights..."
+    "searching": "Searching flights...",
+    "select_airport": "Select airport",
+    "search_airport": "Search city or code...",
+    "no_airports": "No results",
+    "cheapest": "Cheapest",
+    "fastest": "Fastest",
+    "by_price": "Sorted by price",
+    "by_time": "Sorted by duration",
+    "via": "via",
+    "try_other": "Try another date or city pair",
+    "node_connected": "Connected to:"
   },
   "dashboard": {
     "revenue": "Revenue",
@@ -58,7 +88,33 @@
     "operations": "Operations",
     "geography": "Geography",
     "total": "Total",
-    "node": "Node"
+    "node": "Node",
+    "title": "Management Dashboard",
+    "title_short": "Dashboard",
+    "nodes_synced": "3 nodes synchronized",
+    "conflict": "Conflict in progress",
+    "propagating": "Propagating changes",
+    "refresh": "Refresh",
+    "tab_sales": "Sales",
+    "tab_ops": "Operations",
+    "tab_geo": "Geography",
+    "tab_fleet": "Fleet",
+    "total_revenue": "Total Revenue",
+    "first_class": "First Class",
+    "economy": "Economy",
+    "top_routes": "Top 10 routes by revenue",
+    "search_passenger": "Search passenger by passport",
+    "seat_distribution": "Seat distribution",
+    "flights_by_status": "Flights by status",
+    "no_data": "No data",
+    "airports_map": "System airports",
+    "top_routes_req": "Top 10 most requested routes",
+    "vs_yesterday": "vs yesterday"
+  },
+  "admin": {
+    "sync": "Synchronization",
+    "queries": "Queries",
+    "flights": "Flights"
   },
   "status": {
     "SCHEDULED": "Scheduled",
@@ -95,5 +151,9 @@
     "of": "of",
     "hours": "h",
     "minutes": "min"
+  },
+  "error": {
+    "select_origin_dest": "Select origin and destination",
+    "same_airport": "Origin and destination must be different"
   }
 }
