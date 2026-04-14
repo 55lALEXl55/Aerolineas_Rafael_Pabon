@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"TODO|FIXME|NotImplemented|pass$|raise\")",
+      "Bash(python database/seed/load_dataset.py)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker info:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker cp:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec ms-flights:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}

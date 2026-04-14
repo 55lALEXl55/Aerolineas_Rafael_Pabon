@@ -9,6 +9,7 @@ import asyncio
 import heapq
 import os
 import time
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
 import httpx
@@ -55,42 +56,70 @@ AIRPORTS = {
     "CAN": {"name": "Guangzhou Baiyun",             "city": "Guangzhou",   "country": "CN", "region": "Asia",        "lat": 23.39,  "lon": 113.30},
 }
 
-# ─── Matrices de costos ───────────────────────────────────────────────────────
+# ─── Matrices de costos (rutas REALES del dataset) ────────────────────────────
+# None = sin ruta directa en el dataset. Solo 51 de 70 rutas posibles existen.
 
-COST_MATRIX: Dict[str, Dict[str, float]] = {
-    "ATL": {"TYO":1400,"LAX":400,"LON":700,"PAR":750,"FRA":800,"IST":950,"SIN":1500,"MAD":800,"AMS":780,"DFW":200,"DXB":1100,"SAO":900,"PEK":1350,"CAN":1400},
-    "PEK": {"DXB":700,"TYO":500,"LON":900,"PAR":950,"FRA":850,"IST":900,"SIN":600,"MAD":950,"AMS":900,"CAN":200,"SAO":1700,"ATL":1350,"LAX":1100,"DFW":1300},
-    "DXB": {"PEK":700,"TYO":750,"LON":650,"LAX":1300,"PAR":700,"FRA":600,"IST":400,"SIN":600,"MAD":750,"AMS":650,"DFW":1200,"CAN":650,"SAO":1400,"ATL":1100},
-    "TYO": {"ATL":1400,"PEK":500,"DXB":750,"LON":1000,"LAX":900,"PAR":1050,"FRA":950,"IST":900,"SIN":700,"MAD":1100,"AMS":1000,"CAN":550,"SAO":1800,"DFW":1300},
-    "LON": {"ATL":700,"DXB":650,"TYO":1000,"LAX":800,"PAR":150,"FRA":200,"IST":400,"MAD":200,"AMS":150,"DFW":750,"CAN":950,"SAO":1100,"PEK":900,"SIN":950},
-    "LAX": {"ATL":400,"PEK":1100,"DXB":1300,"TYO":900,"LON":800,"PAR":850,"FRA":900,"IST":1100,"SIN":1400,"MAD":900,"AMS":850,"DFW":300,"CAN":1150,"SAO":1000},
-    "PAR": {"ATL":750,"DXB":700,"TYO":1050,"LAX":850,"LON":150,"FRA":150,"IST":450,"MAD":200,"AMS":180,"CAN":950,"SAO":1050,"PEK":950,"SIN":950,"DFW":800},
-    "FRA": {"PEK":850,"DXB":600,"TYO":950,"LON":200,"LAX":900,"PAR":150,"IST":350,"CAN":850,"SAO":900,"ATL":800,"MAD":250,"AMS":200,"SIN":950,"DFW":800},
-    "IST": {"DXB":400,"TYO":900,"FRA":350,"LON":400,"PAR":450,"SIN":800,"MAD":500,"AMS":450,"DFW":1000,"CAN":800,"SAO":1200,"PEK":900,"ATL":950,"LAX":1100},
-    "SIN": {"PEK":600,"DXB":600,"TYO":700,"LON":950,"LAX":1400,"PAR":950,"FRA":950,"IST":800,"MAD":1000,"AMS":950,"CAN":500,"ATL":1500,"DFW":1600,"SAO":1800},
-    "MAD": {"DXB":750,"LON":200,"PAR":200,"FRA":250,"IST":500,"SIN":1000,"AMS":200,"DFW":850,"CAN":950,"SAO":1000,"PEK":950,"TYO":1100,"ATL":800,"LAX":900},
-    "AMS": {"ATL":780,"PEK":900,"DXB":650,"TYO":1000,"LON":150,"LAX":850,"PAR":180,"FRA":200,"IST":450,"MAD":200,"DFW":800,"CAN":900,"SAO":1050,"SIN":950},
-    "DFW": {"ATL":200,"DXB":1200,"LAX":300,"LON":750,"PAR":800,"FRA":800,"IST":1000,"MAD":850,"AMS":800,"CAN":1200,"SAO":950,"PEK":1300,"TYO":1300,"SIN":1600},
-    "CAN": {"PEK":200,"DXB":650,"TYO":550,"LON":950,"LAX":1150,"PAR":950,"FRA":850,"IST":800,"SIN":500,"MAD":950,"AMS":900,"DFW":1200,"SAO":1700,"ATL":1400},
-    "SAO": {"ATL":900,"PEK":1700,"DXB":1400,"TYO":1800,"LON":1100,"LAX":1000,"PAR":1050,"FRA":900,"IST":1200,"SIN":1800,"MAD":1000,"AMS":1050,"DFW":950,"CAN":1700},
+# Precio turista en USD por ruta directa
+COST_ECONOMY: Dict[str, Dict[str, Optional[float]]] = {
+    "ATL": {"TYO":1400,"LAX":400,"FRA":800,"SIN":1500,"MAD":800,"AMS":None,"DFW":200,"SAO":900,"LON":None,"PAR":None,"DXB":None,"IST":None,"PEK":None,"CAN":None},
+    "PEK": {"DXB":700,"TYO":500,"LON":900,"PAR":950,"SIN":600,"MAD":950,"AMS":900,"DFW":1150,"CAN":None,"SAO":1700,"ATL":None,"LAX":None,"FRA":None,"IST":None},
+    "DXB": {"PEK":700,"TYO":750,"LON":650,"LAX":1300,"PAR":700,"FRA":600,"IST":400,"SIN":600,"AMS":650,"DFW":1200,"SAO":1400,"ATL":None,"MAD":None,"CAN":None},
+    "TYO": {"ATL":1400,"PEK":500,"DXB":750,"LON":1000,"LAX":900,"PAR":1050,"IST":900,"SIN":700,"MAD":1100,"DFW":1350,"FRA":None,"AMS":None,"CAN":None,"SAO":None},
+    "LON": {"ATL":700,"DXB":650,"TYO":1000,"LAX":800,"PAR":150,"IST":400,"MAD":200,"AMS":150,"SAO":1100,"FRA":None,"DFW":None,"PEK":None,"SIN":None,"CAN":None},
+    "LAX": {"ATL":400,"PEK":1100,"DXB":1300,"TYO":900,"PAR":850,"FRA":900,"IST":1100,"SIN":1400,"AMS":850,"DFW":300,"LON":None,"MAD":None,"CAN":None,"SAO":None},
+    "PAR": {"ATL":750,"DXB":700,"TYO":1050,"LAX":850,"FRA":150,"IST":450,"MAD":200,"AMS":180,"SAO":1050,"LON":None,"PEK":None,"CAN":None,"DFW":None,"SIN":None},
+    "FRA": {"PEK":850,"DXB":600,"TYO":950,"LON":200,"LAX":900,"PAR":150,"IST":350,"SIN":900,"DFW":850,"ATL":None,"MAD":None,"AMS":None,"CAN":None,"SAO":None},
+    "IST": {"PEK":800,"DXB":400,"TYO":900,"FRA":350,"SIN":800,"MAD":500,"AMS":450,"DFW":1000,"SAO":1200,"ATL":None,"LON":None,"LAX":None,"PAR":None,"CAN":None},
+    "SIN": {"PEK":600,"TYO":700,"LON":900,"PAR":950,"IST":800,"MAD":1000,"DFW":1400,"ATL":None,"DXB":None,"LAX":None,"FRA":None,"AMS":None,"CAN":None,"SAO":None},
+    "MAD": {"DXB":750,"LAX":900,"PAR":200,"FRA":250,"IST":500,"SIN":1000,"AMS":200,"DFW":850,"SAO":1000,"ATL":None,"LON":None,"TYO":None,"PEK":None,"CAN":None},
+    "AMS": {"ATL":780,"PEK":900,"DXB":650,"TYO":1000,"LON":150,"LAX":850,"IST":450,"MAD":200,"DFW":800,"SAO":1050,"FRA":None,"PAR":None,"SIN":None,"CAN":None},
+    "DFW": {"ATL":200,"DXB":1200,"LAX":300,"PAR":800,"IST":1000,"MAD":850,"AMS":800,"CAN":1200,"SAO":950,"LON":None,"FRA":None,"TYO":None,"PEK":None,"SIN":None},
+    "CAN": {"ATL":1250,"PEK":200,"DXB":650,"TYO":550,"LON":950,"LAX":1150,"PAR":950,"IST":800,"SIN":500,"AMS":900,"DFW":1200,"SAO":1700,"FRA":None,"MAD":None},
+    "SAO": {"ATL":900,"DFW":950,"LON":None,"PEK":None,"DXB":None,"TYO":None,"LAX":None,"PAR":None,"FRA":None,"IST":None,"SIN":None,"MAD":None,"AMS":None,"CAN":None},
 }
 
+# Precio primera clase en USD
+COST_FIRST: Dict[str, Dict[str, Optional[float]]] = {
+    "ATL": {"TYO":1890,"LAX":540,"FRA":1080,"SIN":2025,"MAD":1080,"DFW":270,"SAO":1215,"AMS":None,"LON":None,"PAR":None,"DXB":None,"IST":None,"PEK":None,"CAN":None},
+    "PEK": {"DXB":945,"TYO":675,"LON":1215,"PAR":1283,"SIN":810,"MAD":1283,"AMS":1215,"DFW":1553,"SAO":2295,"ATL":None,"LAX":None,"FRA":None,"IST":None,"CAN":None},
+    "DXB": {"PEK":945,"TYO":1013,"LON":878,"LAX":1755,"PAR":945,"FRA":810,"IST":540,"SIN":810,"AMS":878,"DFW":1620,"SAO":1890,"ATL":None,"MAD":None,"CAN":None},
+    "TYO": {"ATL":1890,"PEK":675,"DXB":1013,"LON":1350,"LAX":1215,"PAR":1418,"IST":1215,"SIN":945,"MAD":1485,"DFW":1823,"FRA":None,"AMS":None,"CAN":None,"SAO":None},
+    "LON": {"ATL":945,"DXB":878,"TYO":1350,"LAX":1080,"PAR":203,"IST":540,"MAD":270,"AMS":203,"SAO":1485,"FRA":None,"DFW":None,"PEK":None,"SIN":None,"CAN":None},
+    "LAX": {"ATL":540,"PEK":1485,"DXB":1755,"TYO":1215,"PAR":1148,"FRA":1215,"IST":4049,"SIN":1890,"AMS":1148,"DFW":405,"LON":None,"MAD":None,"CAN":None,"SAO":None},
+    "PAR": {"ATL":1013,"DXB":945,"TYO":1418,"LAX":1148,"FRA":203,"IST":608,"MAD":270,"AMS":243,"SAO":1418,"LON":None,"PEK":None,"CAN":None,"DFW":None,"SIN":None},
+    "FRA": {"PEK":1148,"DXB":810,"TYO":1283,"LON":270,"LAX":1215,"PAR":203,"IST":473,"SIN":1215,"DFW":1148,"ATL":None,"MAD":None,"AMS":None,"CAN":None,"SAO":None},
+    "IST": {"PEK":1080,"DXB":540,"TYO":1215,"FRA":473,"SIN":1080,"MAD":675,"AMS":608,"DFW":1350,"SAO":1620,"ATL":None,"LON":None,"LAX":None,"PAR":None,"CAN":None},
+    "SIN": {"PEK":810,"TYO":945,"LON":1215,"PAR":1283,"IST":1080,"MAD":1350,"DFW":1890,"ATL":None,"DXB":None,"LAX":None,"FRA":None,"AMS":None,"CAN":None,"SAO":None},
+    "MAD": {"DXB":1013,"LAX":1215,"PAR":270,"FRA":338,"IST":675,"SIN":1350,"AMS":270,"DFW":1148,"SAO":1350,"ATL":None,"LON":None,"TYO":None,"PEK":None,"CAN":None},
+    "AMS": {"ATL":1053,"PEK":1215,"DXB":878,"TYO":1350,"LON":203,"LAX":1148,"IST":608,"MAD":270,"DFW":1080,"SAO":1418,"FRA":None,"PAR":None,"SIN":None,"CAN":None},
+    "DFW": {"ATL":270,"DXB":1620,"LAX":405,"PAR":1080,"IST":1350,"MAD":1148,"AMS":1080,"CAN":1620,"SAO":1283,"LON":None,"FRA":None,"TYO":None,"PEK":None,"SIN":None},
+    "CAN": {"ATL":1688,"PEK":270,"DXB":878,"TYO":743,"LON":1283,"LAX":1553,"PAR":1283,"IST":1080,"SIN":675,"AMS":1215,"DFW":1620,"SAO":2295,"FRA":None,"MAD":None},
+    "SAO": {"ATL":1215,"DFW":1283,"LON":None,"PEK":None,"DXB":None,"TYO":None,"LAX":None,"PAR":None,"FRA":None,"IST":None,"SIN":None,"MAD":None,"AMS":None,"CAN":None},
+}
+
+# Tiempo de vuelo en horas — simétrico, cubre todas las rutas
 TIME_MATRIX: Dict[str, Dict[str, float]] = {
-    "ATL": {"PEK":15,"DXB":14,"TYO":16,"LON":8,"LAX":5,"PAR":9,"FRA":9,"IST":11,"SIN":18,"MAD":8,"AMS":9,"DFW":2,"CAN":16,"SAO":9},
-    "PEK": {"DXB":8,"TYO":3,"LON":10,"LAX":12,"PAR":11,"FRA":10,"IST":9,"SIN":6,"MAD":12,"AMS":10,"DFW":14,"CAN":3,"SAO":22,"ATL":15},
-    "DXB": {"PEK":8,"TYO":10,"LON":7,"LAX":16,"PAR":7,"FRA":7,"IST":4,"SIN":7,"MAD":8,"AMS":7,"DFW":15,"CAN":8,"SAO":15,"ATL":14},
-    "TYO": {"ATL":16,"PEK":3,"DXB":10,"LON":12,"LAX":11,"PAR":13,"FRA":12,"IST":11,"SIN":7,"MAD":14,"AMS":12,"DFW":13,"CAN":4,"SAO":24},
-    "LON": {"ATL":8,"DXB":7,"TYO":12,"LAX":11,"PAR":1,"FRA":1,"IST":4,"SIN":13,"MAD":2,"AMS":1,"DFW":10,"CAN":11,"SAO":12,"PEK":10},
-    "LAX": {"ATL":5,"PEK":12,"DXB":16,"TYO":11,"LON":11,"PAR":11,"FRA":11,"IST":13,"SIN":17,"MAD":11,"AMS":11,"DFW":3,"CAN":14,"SAO":12},
-    "PAR": {"ATL":9,"DXB":7,"TYO":13,"LON":1,"LAX":11,"FRA":1,"IST":3,"SIN":13,"MAD":2,"AMS":1,"DFW":10,"CAN":11,"SAO":12,"PEK":11},
-    "FRA": {"ATL":9,"PEK":10,"DXB":7,"TYO":12,"LON":1,"LAX":11,"PAR":1,"IST":3,"SIN":12,"MAD":2,"AMS":1,"DFW":10,"CAN":10,"SAO":12},
-    "IST": {"ATL":11,"PEK":9,"DXB":4,"TYO":11,"LON":4,"LAX":13,"PAR":3,"FRA":3,"SIN":10,"MAD":4,"AMS":3,"DFW":12,"CAN":9,"SAO":13},
-    "SIN": {"PEK":6,"DXB":7,"TYO":7,"LON":13,"LAX":17,"PAR":13,"FRA":12,"IST":10,"MAD":14,"AMS":13,"DFW":17,"CAN":4,"ATL":18,"SAO":25},
-    "MAD": {"ATL":8,"DXB":8,"TYO":14,"LON":2,"LAX":11,"PAR":2,"FRA":2,"IST":4,"SIN":14,"AMS":2,"DFW":10,"CAN":12,"SAO":10,"PEK":12},
-    "AMS": {"ATL":9,"PEK":10,"DXB":7,"TYO":12,"LON":1,"LAX":11,"PAR":1,"FRA":1,"IST":3,"SIN":13,"MAD":2,"DFW":10,"CAN":10,"SAO":12},
-    "DFW": {"ATL":2,"DXB":15,"TYO":13,"LON":10,"LAX":3,"PAR":10,"FRA":10,"IST":12,"SIN":17,"MAD":10,"AMS":10,"CAN":15,"SAO":10,"PEK":14},
-    "CAN": {"PEK":3,"DXB":8,"TYO":4,"LON":11,"LAX":14,"PAR":11,"FRA":10,"IST":9,"SIN":4,"MAD":12,"AMS":10,"DFW":15,"SAO":23,"ATL":16},
-    "SAO": {"ATL":9,"PEK":22,"DXB":15,"TYO":24,"LON":12,"LAX":12,"PAR":12,"FRA":12,"IST":13,"SIN":25,"MAD":10,"AMS":12,"DFW":10,"CAN":23},
+    "ATL": {"ATL":0,"PEK":15,"DXB":14,"TYO":16,"LON":8,"LAX":5,"PAR":9,"FRA":9,"IST":11,"SIN":18,"MAD":8,"AMS":9,"DFW":2,"CAN":16,"SAO":9},
+    "PEK": {"ATL":15,"PEK":0,"DXB":8,"TYO":3,"LON":10,"LAX":12,"PAR":11,"FRA":10,"IST":9,"SIN":6,"MAD":12,"AMS":10,"DFW":14,"CAN":3,"SAO":22},
+    "DXB": {"ATL":14,"PEK":8,"DXB":0,"TYO":10,"LON":7,"LAX":16,"PAR":7,"FRA":7,"IST":4,"SIN":7,"MAD":8,"AMS":7,"DFW":15,"CAN":8,"SAO":15},
+    "TYO": {"ATL":16,"PEK":3,"DXB":10,"TYO":0,"LON":12,"LAX":11,"PAR":13,"FRA":12,"IST":11,"SIN":7,"MAD":14,"AMS":12,"DFW":13,"CAN":4,"SAO":24},
+    "LON": {"ATL":8,"PEK":10,"DXB":7,"TYO":12,"LON":0,"LAX":11,"PAR":1,"FRA":1,"IST":4,"SIN":13,"MAD":2,"AMS":1,"DFW":10,"CAN":11,"SAO":12},
+    "LAX": {"ATL":5,"PEK":12,"DXB":16,"TYO":11,"LON":11,"LAX":0,"PAR":11,"FRA":11,"IST":13,"SIN":17,"MAD":11,"AMS":11,"DFW":3,"CAN":14,"SAO":12},
+    "PAR": {"ATL":9,"PEK":11,"DXB":7,"TYO":13,"LON":1,"LAX":11,"PAR":0,"FRA":1,"IST":3,"SIN":13,"MAD":2,"AMS":1,"DFW":10,"CAN":11,"SAO":12},
+    "FRA": {"ATL":9,"PEK":10,"DXB":7,"TYO":12,"LON":1,"LAX":11,"PAR":1,"FRA":0,"IST":3,"SIN":12,"MAD":2,"AMS":1,"DFW":10,"CAN":10,"SAO":12},
+    "IST": {"ATL":11,"PEK":9,"DXB":4,"TYO":11,"LON":4,"LAX":13,"PAR":3,"FRA":3,"IST":0,"SIN":10,"MAD":4,"AMS":3,"DFW":12,"CAN":9,"SAO":13},
+    "SIN": {"ATL":18,"PEK":6,"DXB":7,"TYO":7,"LON":13,"LAX":17,"PAR":13,"FRA":12,"IST":10,"SIN":0,"MAD":14,"AMS":13,"DFW":17,"CAN":4,"SAO":25},
+    "MAD": {"ATL":8,"PEK":12,"DXB":8,"TYO":14,"LON":2,"LAX":11,"PAR":2,"FRA":2,"IST":4,"SIN":14,"MAD":0,"AMS":2,"DFW":10,"CAN":12,"SAO":10},
+    "AMS": {"ATL":9,"PEK":10,"DXB":7,"TYO":12,"LON":1,"LAX":11,"PAR":1,"FRA":1,"IST":3,"SIN":13,"MAD":2,"AMS":0,"DFW":10,"CAN":10,"SAO":12},
+    "DFW": {"ATL":2,"PEK":14,"DXB":15,"TYO":13,"LON":10,"LAX":3,"PAR":10,"FRA":10,"IST":12,"SIN":17,"MAD":10,"AMS":10,"DFW":0,"CAN":15,"SAO":10},
+    "CAN": {"ATL":16,"PEK":3,"DXB":8,"TYO":4,"LON":11,"LAX":14,"PAR":11,"FRA":10,"IST":9,"SIN":4,"MAD":12,"AMS":10,"DFW":15,"CAN":0,"SAO":23},
+    "SAO": {"ATL":9,"PEK":22,"DXB":15,"TYO":24,"LON":12,"LAX":12,"PAR":12,"FRA":12,"IST":13,"SIN":25,"MAD":10,"AMS":12,"DFW":10,"CAN":23,"SAO":0},
+}
+
+# Alias para compatibilidad con código heredado (Dijkstra estático / TSP)
+COST_MATRIX: Dict[str, Dict[str, float]] = {
+    src: {dst: price for dst, price in dests.items() if price is not None}
+    for src, dests in COST_ECONOMY.items()
 }
 
 
@@ -252,10 +281,203 @@ async def _get_flights_for_segment(
                 },
             )
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                # ms-flights puede retornar lista o dict con "flights"
+                if isinstance(data, list):
+                    return data
+                return data.get("flights", [])
     except Exception:
         pass
     return []  # CAP: AP — continuar sin vuelos reales
+
+
+def _matrix_price(origin: str, destination: str, seat_class: str) -> Optional[float]:
+    """Precio desde las matrices. None si no hay ruta directa en el dataset."""
+    matrix = COST_FIRST if seat_class == "FIRST" else COST_ECONOMY
+    return matrix.get(origin, {}).get(destination)
+
+
+def _theoretical_leg(origin: str, destination: str, seat_class: str, date_epoch: int) -> dict:
+    """Crea un tramo teórico desde las matrices cuando ms-flights no tiene datos."""
+    eco  = COST_ECONOMY.get(origin, {}).get(destination) or 0
+    fst  = COST_FIRST.get(origin, {}).get(destination) or 0
+    price = fst if seat_class == "FIRST" else eco
+    dur_h = TIME_MATRIX.get(origin, {}).get(destination, 8)
+    return {
+        "flight_id":      None,
+        "flight_number":  None,
+        "origin":         origin,
+        "destination":    destination,
+        "departure_epoch": date_epoch,
+        "arrival_epoch":  date_epoch + int(dur_h * 3600),
+        "duration_h":     dur_h,
+        "duration_minutes": int(dur_h * 60),
+        "price":          price,
+        "price_economy":  eco,
+        "price_first":    fst,
+        "economy_price":  eco,
+        "first_class_price": fst,
+        "aircraft_model": None,
+        "aircraft_id":    None,
+        "available_first":   0,
+        "available_economy": 0,
+        "status":         "THEORETICAL",
+        "theoretical":    True,
+    }
+
+
+async def _search_best_flight(
+    origin: str, destination: str, date_epoch: int, seat_class: str = "ECONOMY"
+) -> Optional[dict]:
+    """
+    Retorna el vuelo más barato para origin→destination en date_epoch.
+    Si ms-flights no tiene datos reales, cae a la matriz como tramo teórico.
+    Retorna None si la ruta no existe en el dataset (celda None en la matriz).
+    """
+    # Primero verificar que la ruta existe en el dataset
+    matrix_p = _matrix_price(origin, destination, seat_class)
+    if matrix_p is None:
+        return None  # ruta sin vuelo directo, nunca existirá
+
+    flights = await _get_flights_for_segment(origin, destination, date_epoch, seat_class)
+    real = [f for f in flights if not f.get("date_note")]
+
+    if not real and flights:
+        real = flights  # acepta fallback de fecha cercana si no hay del día exacto
+
+    if real:
+        price_key = "first_class_price" if seat_class == "FIRST" else "economy_price"
+        return min(real, key=lambda f: f.get(price_key) or matrix_p)
+
+    # Sin datos de ms-flights: retornar tramo teórico desde matrices
+    return _theoretical_leg(origin, destination, seat_class, date_epoch)
+
+
+async def _build_flight_graph(
+    date_epoch: int, seat_class: str
+) -> Dict[tuple, dict]:
+    """
+    Construye el grafo de vuelos disponibles para date_epoch.
+    Para cada ruta del dataset (no-None en las matrices):
+      - Intenta obtener vuelo real de ms-flights
+      - Si no hay, usa precio/tiempo de la matriz como fallback teórico
+    Retorna dict: (origin, dest) → {price, time_h, flight, real}
+    """
+    price_matrix = COST_FIRST if seat_class == "FIRST" else COST_ECONOMY
+
+    known_pairs = [
+        (src, dst)
+        for src, dests in price_matrix.items()
+        for dst, price in dests.items()
+        if price is not None
+    ]
+
+    # Consultar ms-flights en paralelo para todas las rutas conocidas
+    tasks = [
+        _get_flights_for_segment(src, dst, date_epoch, seat_class)
+        for src, dst in known_pairs
+    ]
+    results = await asyncio.gather(*tasks)
+
+    price_key = "first_class_price" if seat_class == "FIRST" else "economy_price"
+    graph: Dict[tuple, dict] = {}
+
+    for (src, dst), flights in zip(known_pairs, results):
+        time_h = TIME_MATRIX.get(src, {}).get(dst, 8)
+        matrix_p = price_matrix[src][dst]
+
+        real = [f for f in flights if not f.get("date_note")]
+        if not real and flights:
+            real = flights  # acepta fallback de fecha cercana
+
+        if real:
+            best = min(real, key=lambda f: f.get(price_key) or matrix_p)
+            actual_price = best.get(price_key) or matrix_p
+            graph[(src, dst)] = {
+                "price":  actual_price,
+                "time_h": time_h,
+                "flight": best,
+                "real":   True,
+            }
+        else:
+            # Fallback teórico desde matrices
+            graph[(src, dst)] = {
+                "price":  matrix_p,
+                "time_h": time_h,
+                "flight": _theoretical_leg(src, dst, seat_class, date_epoch),
+                "real":   False,
+            }
+
+    return graph
+
+
+def _dijkstra_on_graph(
+    graph: Dict[tuple, dict], origin: str, destination: str, weight_key: str
+) -> Optional[list]:
+    """
+    Dijkstra sobre el grafo de vuelos.
+    Retorna lista de (src, dst, edge_data) en el camino óptimo, o None si inalcanzable.
+    """
+    airport_list = list(AIRPORTS.keys())
+    INF = float("inf")
+    dist: Dict[str, float] = {a: INF for a in airport_list}
+    prev: Dict[str, Optional[tuple]] = {a: None for a in airport_list}
+    dist[origin] = 0.0
+    pq: List[tuple] = [(0.0, origin)]
+
+    while pq:
+        cost, u = heapq.heappop(pq)
+        if cost > dist[u]:
+            continue
+        if u == destination:
+            break
+        for v in airport_list:
+            edge = graph.get((u, v))
+            if edge:
+                new_cost = cost + edge[weight_key]
+                if new_cost < dist[v]:
+                    dist[v] = new_cost
+                    prev[v] = (u, edge)
+                    heapq.heappush(pq, (new_cost, v))
+
+    if dist[destination] == INF:
+        return None
+
+    edges = []
+    node = destination
+    while prev[node] is not None:
+        prev_node, edge = prev[node]
+        edges.append((prev_node, node, edge))
+        node = prev_node
+    edges.reverse()
+    return edges
+
+
+def _format_leg(flight: dict, seat_class: str) -> dict:
+    """Normaliza un vuelo de ms-flights al formato de tramo de ruta."""
+    price_key = "first_class_price" if seat_class == "FIRST" else "economy_price"
+    price = flight.get(price_key) or flight.get("economy_price") or 0
+    dur_h = flight.get("duration_hours") or round(flight.get("duration_minutes", 0) / 60, 2)
+    return {
+        "flight_id":        flight.get("flight_id"),
+        "flight_number":    flight.get("flight_number"),
+        "origin":           flight.get("origin"),
+        "destination":      flight.get("destination"),
+        "departure_epoch":  flight.get("flight_date_epoch") or flight.get("departure_epoch"),
+        "arrival_epoch":    flight.get("arrival_epoch"),
+        "duration_h":       round(dur_h, 2),
+        "duration_minutes": flight.get("duration_minutes", 0),
+        "price":            price,
+        "price_economy":    flight.get("economy_price") or flight.get("price_economy") or price,
+        "price_first":      flight.get("first_class_price") or flight.get("price_first") or price,
+        "economy_price":    flight.get("economy_price") or flight.get("price_economy") or price,
+        "first_class_price": flight.get("first_class_price") or flight.get("price_first") or price,
+        "aircraft_model":   flight.get("aircraft_model"),
+        "aircraft_id":      flight.get("aircraft_id"),
+        "available_first":  flight.get("available_first", 0),
+        "available_economy": flight.get("available_economy", 0),
+        "status":           flight.get("status", "SCHEDULED"),
+    }
 
 
 async def _enrich_path_with_flights(
@@ -330,72 +552,174 @@ async def shortest_route(
     seat_class: str = Query("ECONOMY", regex="^(FIRST|ECONOMY)$"),
 ):
     """
-    Ruta óptima entre dos aeropuertos usando Dijkstra puro.
-    Prioridad CLAUDE.md: precio primero, luego tiempo.
-    Verifica disponibilidad real de vuelos en ms-flights.
+    Ruta óptima mediante Dijkstra sobre vuelos REALES de la BD.
+    - Construye grafo desde ms-flights para date_epoch.
+    - Fallback a matrices cuando no hay vuelo real ese día.
+    - Funciona con cualquier dataset del mismo formato.
+    CAP: AP — si ms-flights no responde, usa matrices estáticas.
     """
     o = origin.upper().strip()
     d = destination.upper().strip()
 
-    if o not in COST_MATRIX:
+    if o not in AIRPORTS:
         raise HTTPException(400, {"error": "AEROPUERTO_INVALIDO", "message": f"Origen '{o}' no reconocido"})
-    if d not in COST_MATRIX and d not in {k for v in COST_MATRIX.values() for k in v}:
+    if d not in AIRPORTS:
         raise HTTPException(400, {"error": "AEROPUERTO_INVALIDO", "message": f"Destino '{d}' no reconocido"})
+    if o == d:
+        raise HTTPException(400, {"error": "MISMO_AEROPUERTO", "message": "Origen y destino son iguales"})
 
-    # Siempre calcular primero por precio (CLAUDE.md: prioridad precio)
-    cost_dist, cost_path = dijkstra(COST_MATRIX, o, d)
-    time_dist, time_path = dijkstra(TIME_MATRIX, o, d)
+    weight_key = "price" if mode == "price" else "time_h"
 
-    if cost_dist == float("inf"):
-        return {"routes": [], "message": "No hay ruta disponible entre estos aeropuertos"}
+    # ── Construir grafo desde vuelos reales + fallback matrices ───────────────
+    graph = await _build_flight_graph(date_epoch, seat_class)
 
-    # Según mode, ordenar las rutas
-    if mode == "price":
-        primary_path, primary_metric = cost_path, cost_dist
-        secondary_path, secondary_metric = time_path, time_dist
-    else:
-        primary_path, primary_metric = time_path, time_dist
-        secondary_path, secondary_metric = cost_path, cost_dist
+    # ── Dijkstra: mejor ruta (menor costo o tiempo) ───────────────────────────
+    best_edges = _dijkstra_on_graph(graph, o, d, weight_key)
 
-    routes = []
+    if not best_edges:
+        return {
+            "origin": o, "destination": d, "date_epoch": date_epoch,
+            "seat_class": seat_class, "routes": [],
+            "message": "No hay ruta posible entre estos aeropuertos",
+        }
 
-    # Ruta primaria
-    all_avail, segments = await _enrich_path_with_flights(primary_path, date_epoch, seat_class)
-    total_price = sum(s.get("best_price", 0) for s in segments)
-    total_hours = sum(s.get("duration_hours", 0) for s in segments)
-    routes.append({
-        "path": primary_path,
-        "mode": mode,
-        "available": all_avail,
-        "total_cost_usd": total_price if all_avail else cost_dist,
-        "total_hours": total_hours if all_avail else time_dist,
-        "stops": len(primary_path) - 2,
-        "segments": segments,
-        "algorithm": "dijkstra",
-    })
+    def _edges_to_route(edges: list) -> dict:
+        legs = []
+        for src, dst, edge in edges:
+            f = edge["flight"]
+            legs.append(f if f.get("theoretical") else _format_leg(f, seat_class))
+        stops = [edges[0][0]] + [e[1] for e in edges]
+        total_cost = sum(e[2]["price"] for e in edges)
+        total_time = sum(e[2]["time_h"] for e in edges)
+        if len(edges) > 1:
+            total_time += (len(edges) - 1) * 2.0  # +2h por escala
+        all_real = all(e[2]["real"] for e in edges)
+        hub = stops[1] if len(stops) == 3 else (stops[1] if len(stops) > 3 else None)
+        return {
+            "type":            "DIRECT" if len(edges) == 1 else "CONNECTING",
+            "stops":           stops,
+            "legs":            legs,
+            "total_cost":      round(total_cost, 2),
+            "total_time_h":    round(total_time, 2),
+            "layover_airport": hub,
+            "layover_h":       (len(edges) - 1) * 2 if len(edges) > 1 else 0,
+            "real_flights":    all_real,
+            "algorithm":       "dijkstra_dynamic",
+        }
 
-    # Si la ruta secundaria tiene distinto camino, incluirla
-    if secondary_path != primary_path:
-        all_avail2, segments2 = await _enrich_path_with_flights(secondary_path, date_epoch, seat_class)
-        total_price2 = sum(s.get("best_price", 0) for s in segments2)
-        total_hours2 = sum(s.get("duration_hours", 0) for s in segments2)
-        routes.append({
-            "path": secondary_path,
-            "mode": "time" if mode == "price" else "price",
-            "available": all_avail2,
-            "total_cost_usd": total_price2 if all_avail2 else cost_dist,
-            "total_hours": total_hours2 if all_avail2 else time_dist,
-            "stops": len(secondary_path) - 2,
-            "segments": segments2,
-            "algorithm": "dijkstra",
-        })
+    routes = [_edges_to_route(best_edges)]
+
+    # ── Segunda opción: Dijkstra con peso alternativo ────────────────────────
+    alt_key = "time_h" if mode == "price" else "price"
+    alt_edges = _dijkstra_on_graph(graph, o, d, alt_key)
+    if alt_edges:
+        alt_route = _edges_to_route(alt_edges)
+        if alt_route["stops"] != routes[0]["stops"]:
+            routes.append(alt_route)
+
+    # ── Tercera opción: con escala si la mejor fue directa ───────────────────
+    if len(routes) < 3 and len(best_edges) == 1:
+        all_nodes = list(AIRPORTS.keys())
+        hub_options = []
+        for hub in all_nodes:
+            if hub == o or hub == d:
+                continue
+            e1 = graph.get((o, hub))
+            e2 = graph.get((hub, d))
+            if e1 and e2:
+                tc = e1["price"] + e2["price"]
+                tt = e1["time_h"] + e2["time_h"] + 2.0
+                hub_options.append((tc, tt, hub, e1, e2))
+        if hub_options:
+            hub_options.sort(key=lambda x: x[0] if mode == "price" else x[1])
+            tc, tt, hub, e1, e2 = hub_options[0]
+            f1 = e1["flight"]
+            f2 = e2["flight"]
+            routes.append({
+                "type": "CONNECTING",
+                "stops": [o, hub, d],
+                "legs": [
+                    f1 if f1.get("theoretical") else _format_leg(f1, seat_class),
+                    f2 if f2.get("theoretical") else _format_leg(f2, seat_class),
+                ],
+                "total_cost":      round(tc, 2),
+                "total_time_h":    round(tt, 2),
+                "layover_airport": hub,
+                "layover_h":       2,
+                "real_flights":    e1["real"] and e2["real"],
+                "algorithm":       "dijkstra_dynamic",
+            })
 
     return {
-        "origin": o,
-        "destination": d,
-        "date_epoch": date_epoch,
-        "seat_class": seat_class,
-        "routes": routes,
+        "origin": o, "destination": d,
+        "date_epoch": date_epoch, "seat_class": seat_class,
+        "routes": routes[:3],
+    }
+
+
+# ─── GET /routes/graph-status ────────────────────────────────────────────────
+
+@app.get("/routes/graph-status")
+async def graph_status(date_epoch: Optional[int] = Query(None)):
+    """
+    Muestra qué rutas directas están disponibles en la BD para una fecha.
+    Útil para el admin: al cambiar el dataset, hace clic en Recalcular.
+    Compara rutas reales de ms-flights vs. rutas esperadas por las matrices.
+    """
+    if not date_epoch:
+        date_epoch = int(time.time())
+
+    from datetime import datetime, timezone
+    dt = datetime.fromtimestamp(date_epoch, tz=timezone.utc)
+    day_label = dt.strftime("%Y-%m-%d")
+
+    # Pares que deberían existir según las matrices
+    matrix_pairs = set(
+        (src, dst)
+        for src, dests in COST_ECONOMY.items()
+        for dst, price in dests.items()
+        if price is not None
+    )
+
+    # Consultar ms-flights en paralelo para todos los pares conocidos
+    pair_list = sorted(matrix_pairs)
+    tasks = [
+        _get_flights_for_segment(src, dst, date_epoch, "ECONOMY")
+        for src, dst in pair_list
+    ]
+    results = await asyncio.gather(*tasks)
+
+    available = []
+    unavailable = []
+    for (src, dst), flights in zip(pair_list, results):
+        real = [f for f in flights if not f.get("date_note")]
+        eco_price = COST_ECONOMY.get(src, {}).get(dst)
+        entry = {
+            "from": src,
+            "to": dst,
+            "matrix_price_economy": eco_price,
+            "matrix_time_h": TIME_MATRIX.get(src, {}).get(dst),
+        }
+        if real:
+            best = min(real, key=lambda f: f.get("economy_price") or eco_price or 9999)
+            entry.update({
+                "flights_today": len(real),
+                "best_price":    best.get("economy_price") or eco_price,
+                "real":          True,
+            })
+            available.append(entry)
+        else:
+            entry.update({"flights_today": 0, "real": False})
+            unavailable.append(entry)
+
+    return {
+        "date":              day_label,
+        "date_epoch":        date_epoch,
+        "matrix_routes":     len(matrix_pairs),
+        "real_routes_today": len(available),
+        "missing_today":     len(unavailable),
+        "available":         sorted(available, key=lambda r: (r["from"], r["to"])),
+        "unavailable":       sorted(unavailable, key=lambda r: (r["from"], r["to"])),
     }
 
 

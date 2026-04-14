@@ -1,8 +1,15 @@
+import { useBookingStore } from '../stores/bookingStore'
+
 const BASE = import.meta.env.VITE_API_URL || ''
 
 async function req(path, opts = {}) {
+  const node = useBookingStore.getState().activeNode || 1
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Node-Id': String(node),
+      ...(opts.headers || {}),
+    },
     ...opts,
   })
   if (!res.ok) {
@@ -53,8 +60,6 @@ export const buySeat = (data) =>
     body: JSON.stringify(data),
   })
 
-// refundTicket / cancelReservation: the frontend only has ticket_id at call time.
-// These use dedicated endpoints that look up seat/flight by ticket_id server-side.
 export const refundTicket = (ticketId) =>
   req(`/api/bookings/refund-ticket`, {
     method: 'POST',
@@ -71,13 +76,49 @@ export const getPassengerByPassport = (passport) =>
   req(`/api/bookings/passenger/${passport}`)
 
 // ─── Routes / Dijkstra ────────────────────────────────────────────────────────
-// mode: 'price' | 'time'  (backend accepts those two values)
-// dateEpoch: required by backend; defaults to today 00:00 UTC if omitted
-export const findRoute = (origin, destination, dateEpoch, mode = 'price', seatClass = 'ECONOMY') => {
+
+/**
+ * Busca la mejor ruta entre dos aeropuertos usando vuelos reales de la BD.
+ * Transforma la respuesta de ms-routes al formato {flights, total_cost, total_minutes}
+ * que esperan los componentes del frontend.
+ */
+export const findRoute = async (origin, destination, dateEpoch, mode = 'price', seatClass = 'ECONOMY') => {
   const epoch = dateEpoch || Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000)
   const m = (mode === 'cheapest' || mode === 'price') ? 'price' : 'time'
-  return req(`/api/routes/shortest?origin=${origin}&destination=${destination}&date_epoch=${epoch}&mode=${m}&seat_class=${seatClass}`)
+  const data = await req(
+    `/api/routes/shortest?origin=${origin}&destination=${destination}&date_epoch=${epoch}&mode=${m}&seat_class=${seatClass}`
+  )
+
+  if (!data.routes?.length) return null
+
+  const best = data.routes[0]
+  // Normalizar legs al formato de vuelo que espera el frontend
+  const flights = (best.legs || []).map(leg => ({
+    ...leg,
+    flight_date_epoch: leg.departure_epoch,
+    price_economy:     leg.economy_price ?? leg.price ?? 0,
+    economy_price:     leg.economy_price ?? leg.price ?? 0,
+    first_class_price: leg.first_class_price ?? leg.price ?? 0,
+  }))
+
+  return {
+    type:           best.type || 'DIRECT',
+    flights,
+    total_cost:     best.total_cost,
+    total_minutes:  Math.round((best.total_time_h || 0) * 60),
+    stops:          best.stops || [],
+    hub:            best.layover_airport,
+    layover_h:      best.layover_h,
+  }
 }
+
+// Metadatos del dataset activo (rango de fechas disponible)
+export const getDatasetInfo = () =>
+  req('/api/flights/dataset-info')
+
+// Fechas disponibles para una ruta específica
+export const getAvailableDates = (origin, destination) =>
+  req(`/api/flights/available-dates?origin=${origin}&destination=${destination}`)
 
 export const getAirports = () =>
   req(`/api/routes/all-airports`)

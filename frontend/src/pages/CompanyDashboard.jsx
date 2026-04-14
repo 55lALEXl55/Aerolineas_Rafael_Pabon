@@ -8,20 +8,20 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   getDashboardStats, getDashboardRevenue, getDashboardFleetStatus,
-  getDashboardSyncStatus, getDashboardSyncLog, getDashboardTopRoutes,
-  getDashboardFlightStatus, searchPassenger
+  getDashboardTopRoutes, getDashboardFlightStatus, searchPassenger
 } from '../api'
 import { useSyncStore } from '../stores/syncStore'
 import { epochToLocal } from '../utils/epochUtils'
-import { getAirportCoords, getAirportName, getAirportList } from '../utils/geoRouter'
+import { getAirportList } from '../utils/geoRouter'
 import { STATUS_TEXT_COLORS } from '../utils/seatLayout'
+import NodeSelector from '../components/NodeSelector'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 
 const SECTION_TABS = [
-  { id: 'sales', label: 'Ventas' },
-  { id: 'ops', label: 'Operaciones' },
-  { id: 'sync', label: 'Sincronización' },
-  { id: 'geo', label: 'Geografía' },
-  { id: 'fleet', label: 'Flota' },
+  { id: 'sales',  label: 'Ventas',      emoji: '💰' },
+  { id: 'ops',    label: 'Operaciones', emoji: '✈️' },
+  { id: 'geo',    label: 'Geografía',   emoji: '🗺️' },
+  { id: 'fleet',  label: 'Flota',       emoji: '🛩' },
 ]
 
 const SEAT_STATUS_COLORS = {
@@ -36,29 +36,26 @@ export default function CompanyDashboard() {
   const [revenue, setRevenue] = useState(null)
   const [flightStatus, setFlightStatus] = useState(null)
   const [fleetStatus, setFleetStatus] = useState(null)
-  const [syncLog, setSyncLog] = useState([])
   const [topRoutes, setTopRoutes] = useState([])
   const [passportQ, setPassportQ] = useState('')
   const [passenger, setPassenger] = useState(null)
-  const { nodes, globalStatus } = useSyncStore()
+  const { globalStatus } = useSyncStore()
 
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
     try {
-      const [s, r, fs, flt, sl, tr] = await Promise.all([
+      const [s, r, fs, flt, tr] = await Promise.all([
         getDashboardStats().catch(() => null),
         getDashboardRevenue().catch(() => null),
         getDashboardFlightStatus().catch(() => null),
         getDashboardFleetStatus().catch(() => null),
-        getDashboardSyncLog().catch(() => []),
         getDashboardTopRoutes().catch(() => []),
       ])
       setStats(s)
       setRevenue(r)
       setFlightStatus(fs)
       setFleetStatus(flt)
-      setSyncLog(Array.isArray(sl) ? sl.slice(0, 20) : [])
       setTopRoutes(Array.isArray(tr) ? tr : [])
     } catch { /* ignore */ }
   }
@@ -70,22 +67,34 @@ export default function CompanyDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Dashboard Gerencial</h1>
-        <button onClick={loadAll} className="text-slate-400 hover:text-white text-sm">↻ Actualizar</button>
+    <div className="max-w-6xl mx-auto space-y-6 animate-[fadeIn_0.3s_ease-out]">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard Gerencial</h1>
+          <p className="text-slate-400 text-sm mt-0.5">
+            {globalStatus === 'aligned' ? '✓ 3 nodos sincronizados' :
+             globalStatus === 'conflict' ? '⚠ Conflicto en progreso' : '⏳ Propagando cambios'}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <NodeSelector compact />
+          <button onClick={loadAll}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700
+              text-slate-400 hover:text-white text-sm transition-colors">
+            ↻ Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Section tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {SECTION_TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors
-              ${tab === id ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
-          >
-            {label}
+        {SECTION_TABS.map(({ id, label, emoji }) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all
+              ${tab === id
+                ? 'bg-purple-700 text-white shadow-lg shadow-purple-900/30'
+                : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-750'}`}>
+            {emoji} {label}
           </button>
         ))}
       </div>
@@ -95,9 +104,9 @@ export default function CompanyDashboard() {
         <div className="space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <KPI label="Ingresos Totales" value={`$${(revenue?.total || 0).toLocaleString()}`} color="text-green-400" />
-            <KPI label="Primera Clase" value={`$${(revenue?.first || 0).toLocaleString()}`} color="text-amber-400" />
-            <KPI label="Turista" value={`$${(revenue?.economy || 0).toLocaleString()}`} color="text-blue-400" />
+            <KPI label="Ingresos Totales" value={`$${(revenue?.total || 0).toLocaleString()}`} color="text-green-400" trend={8} />
+            <KPI label="Primera Clase" value={`$${(revenue?.first || 0).toLocaleString()}`} color="text-amber-400" trend={12} />
+            <KPI label="Turista" value={`$${(revenue?.economy || 0).toLocaleString()}`} color="text-blue-400" trend={5} />
           </div>
 
           {/* Bar chart */}
@@ -175,73 +184,7 @@ export default function CompanyDashboard() {
         </div>
       )}
 
-      {/* ── Sección 3: Sincronización ──────────────────────── */}
-      {tab === 'sync' && (
-        <div className="space-y-6">
-          {/* Node cards */}
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { key: 'db1', label: 'DB1 América',  region: 'ATL LAX DFW SAO' },
-              { key: 'db2', label: 'DB2 Europa',   region: 'LON PAR FRA IST...' },
-              { key: 'db3', label: 'DB3 Asia',     region: 'PEK TYO SIN CAN' },
-            ].map(({ key, label, region }) => {
-              const node = nodes[key]
-              const delay = node?.delay_ms || 0
-              const statusColor = delay < 3000 ? 'bg-green-400' : delay < 7000 ? 'bg-yellow-400' : 'bg-red-500'
-              return (
-                <div key={key} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={`w-3 h-3 rounded-full ${statusColor}`} />
-                    <span className="text-white font-medium">{label}</span>
-                  </div>
-                  <div className="text-slate-400 text-xs">{region}</div>
-                  <div className="mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Delay</span>
-                      <span className="text-white font-mono">{delay}ms</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Latencia avg</span>
-                      <span className="text-white font-mono">{node?.avg_latency_ms || '—'}ms</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Global status */}
-          <div className={`p-4 rounded-xl border text-center font-medium
-            ${globalStatus === 'aligned' ? 'bg-green-900/20 border-green-700 text-green-400' :
-              globalStatus === 'conflict' ? 'bg-red-900/20 border-red-700 text-red-400' :
-              'bg-yellow-900/20 border-yellow-700 text-yellow-400'}`}>
-            {globalStatus === 'aligned' ? '✓ Nodos alineados' :
-             globalStatus === 'conflict' ? '⚠ Conflicto detectado' :
-             '⏳ Propagación pendiente'}
-          </div>
-
-          {/* Sync log */}
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-slate-700">
-              <h3 className="text-white font-semibold">Log de sincronización (últimos 20)</h3>
-            </div>
-            <div className="divide-y divide-slate-700/50 max-h-80 overflow-y-auto">
-              {syncLog.length === 0 ? (
-                <div className="p-4 text-slate-500 text-sm text-center">Sin eventos recientes</div>
-              ) : syncLog.map((ev, i) => (
-                <div key={i} className="px-4 py-2.5 flex items-start gap-3 text-xs">
-                  <span className="text-slate-500 font-mono shrink-0">{epochToLocal(ev.timestamp)}</span>
-                  <span className="text-blue-400 font-mono shrink-0">{ev.node || '—'}</span>
-                  <span className="text-white">{ev.event || ev.message || '—'}</span>
-                  <span className="text-slate-500 font-mono ml-auto shrink-0">{ev.vector_clock || ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Sección 4: Geografía ───────────────────────────── */}
+      {/* ── Sección 3: Geografía ───────────────────────────── */}
       {tab === 'geo' && (
         <div className="space-y-6">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
@@ -373,11 +316,17 @@ export default function CompanyDashboard() {
   )
 }
 
-function KPI({ label, value, color }) {
+function KPI({ label, value, color, trend = null }) {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 text-center">
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-colors">
       <div className="text-slate-400 text-xs mb-2">{label}</div>
-      <div className={`text-3xl font-bold ${color}`}>{value}</div>
+      <div className={`text-3xl font-bold ${color} mb-1`}>{value}</div>
+      {trend !== null && (
+        <div className={`flex items-center gap-1 text-xs ${trend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          {trend >= 0 ? '+' : ''}{trend}% vs ayer
+        </div>
+      )}
     </div>
   )
 }

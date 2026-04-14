@@ -86,14 +86,19 @@ export default function SeatSelection() {
 
   if (loading && !flight) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">{t('common.loading')}</div>
+      <div className="max-w-5xl mx-auto space-y-4 animate-pulse">
+        <div className="h-10 w-24 bg-slate-800 rounded-lg" />
+        <div className="h-32 bg-slate-800 rounded-2xl" />
+        <div className="grid grid-cols-5 gap-3">
+          {[0,1,2,3,4].map(i => <div key={i} className="h-20 bg-slate-800 rounded-xl" />)}
+        </div>
+        <div className="h-96 bg-slate-800 rounded-2xl" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 animate-[fadeIn_0.3s_ease-out]">
       {/* Back */}
       <button onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">

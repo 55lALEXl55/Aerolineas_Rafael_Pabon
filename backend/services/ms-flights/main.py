@@ -7,10 +7,11 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Depends, Body
+from fastapi import FastAPI, HTTPException, Query, Depends, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -100,6 +101,7 @@ async def health():
 
 @app.get("/flights/search")
 async def search_flights(
+    request: Request,
     origin: str = Query(..., min_length=3, max_length=3),
     destination: str = Query(..., min_length=3, max_length=3),
     date_epoch: int = Query(..., description="Inicio del día en epoch unix"),
@@ -107,14 +109,20 @@ async def search_flights(
     db1: Session = Depends(get_db1),
     db2: Session = Depends(get_db2),
 ):
+    # X-Node-Id header: informational — logged for distributed demo purposes.
+    # Actual DB routing is always by airport code (authoritative).
+    _requested_node = int(request.headers.get("X-Node-Id", NODE_ID))
     """
     Busca vuelos directos en la BD correspondiente al aeropuerto de origen.
     Retorna lista vacía si no hay directos (ms-routes calculará escalas).
     """
     origin = origin.upper().strip()
     destination = destination.upper().strip()
-    date_from = date_epoch
-    date_to = date_epoch + 86_400  # fin del día
+
+    # Normalizar al inicio/fin del día en UTC (por si el frontend manda un epoch no exacto)
+    dt = datetime.fromtimestamp(date_epoch, tz=timezone.utc)
+    day_start = int(datetime(dt.year, dt.month, dt.day, tzinfo=timezone.utc).timestamp())
+    day_end = day_start + 86_399
 
     seat_filter = ""
     if seat_class == "FIRST":
@@ -163,54 +171,108 @@ async def search_flights(
     params = {
         "origin": origin,
         "destination": destination,
-        "date_from": date_from,
-        "date_to": date_to,
+        "date_from": day_start,
+        "date_to": day_end,
     }
 
     node = _node_for_airport(origin)
 
+    async def _enrich_mongo_doc(doc: dict) -> dict:
+        aircraft_doc = await mongo_db.aircraft.find_one(
+            {"aircraft_id": doc.get("aircraft_id")}, {"_id": 0}
+        )
+        if aircraft_doc:
+            doc["aircraft_model"] = aircraft_doc.get("model", "")
+            doc["manufacturer"] = aircraft_doc.get("manufacturer", "")
+            doc["engines"] = aircraft_doc.get("engines", 0)
+            doc["seats_first"] = aircraft_doc.get("seats_first", 0)
+            doc["seats_economy"] = aircraft_doc.get("seats_economy", 0)
+            doc["total_seats"] = aircraft_doc.get("total_seats", 0)
+        doc["first_class_price"] = doc.get("price_first", 0)
+        doc["economy_price"] = doc.get("price_economy", 0)
+        doc["flight_date_epoch"] = doc.get("departure_epoch", 0)
+        doc["duration_hours"] = round(doc.get("duration_minutes", 0) / 60, 2)
+        return doc
+
     if node == 3:
-        mongo_filter: dict = {
-            "origin": origin,
-            "destination": destination,
-            "departure_epoch": {"$gte": date_from, "$lt": date_to},
-            "status": {"$in": ["SCHEDULED", "BOARDING"]},
-        }
-        if seat_class == "FIRST":
-            mongo_filter["available_first"] = {"$gt": 0}
-        elif seat_class == "ECONOMY":
-            mongo_filter["available_economy"] = {"$gt": 0}
-        else:
-            mongo_filter["$or"] = [
-                {"available_first": {"$gt": 0}},
-                {"available_economy": {"$gt": 0}},
-            ]
+        def _build_mongo_filter(d_start: int, d_end: int) -> dict:
+            f: dict = {
+                "origin": origin,
+                "destination": destination,
+                "departure_epoch": {"$gte": d_start, "$lte": d_end},
+                "status": {"$in": ["SCHEDULED", "BOARDING"]},
+            }
+            if seat_class == "FIRST":
+                f["available_first"] = {"$gt": 0}
+            elif seat_class == "ECONOMY":
+                f["available_economy"] = {"$gt": 0}
+            else:
+                f["$or"] = [{"available_first": {"$gt": 0}}, {"available_economy": {"$gt": 0}}]
+            return f
 
         results = []
-        async for doc in mongo_db.flights.find(mongo_filter, {"_id": 0}):
-            # Enriquecer con datos del avión
-            aircraft_doc = await mongo_db.aircraft.find_one(
-                {"aircraft_id": doc.get("aircraft_id")}, {"_id": 0}
-            )
-            if aircraft_doc:
-                doc["aircraft_model"] = aircraft_doc.get("model", "")
-                doc["manufacturer"] = aircraft_doc.get("manufacturer", "")
-                doc["engines"] = aircraft_doc.get("engines", 0)
-                doc["seats_first"] = aircraft_doc.get("seats_first", 0)
-                doc["seats_economy"] = aircraft_doc.get("seats_economy", 0)
-                doc["total_seats"] = aircraft_doc.get("total_seats", 0)
-            doc["first_class_price"] = doc.get("price_first", 0)
-            doc["economy_price"] = doc.get("price_economy", 0)
-            doc["flight_date_epoch"] = doc.get("departure_epoch", 0)
-            doc["duration_hours"] = round(doc.get("duration_minutes", 0) / 60, 2)
-            results.append(doc)
+        async for doc in mongo_db.flights.find(_build_mongo_filter(day_start, day_end), {"_id": 0}):
+            results.append(await _enrich_mongo_doc(doc))
+
+        # Fallback ±3 días si no hay resultados directos
+        if not results:
+            async for doc in mongo_db.flights.find(
+                _build_mongo_filter(day_start - 259_200, day_end + 259_200), {"_id": 0}
+            ):
+                results.append(await _enrich_mongo_doc(doc))
+
         return results
 
     db = db1 if node == 1 else db2
     try:
         rows = db.execute(sql, params).mappings().all()
-        return [dict(r) for r in rows]
-    except Exception as e:
+        if rows:
+            return [dict(r) for r in rows]
+        # Fallback: vuelo más cercano hacia adelante si no hay en el día exacto
+        fallback_sql = text(f"""
+            SELECT TOP 10
+                f.flight_id,
+                RTRIM(f.origin)      AS origin,
+                RTRIM(f.destination) AS destination,
+                f.departure_epoch    AS flight_date_epoch,
+                f.arrival_epoch,
+                f.duration_minutes,
+                ROUND(f.duration_minutes / 60.0, 2) AS duration_hours,
+                a.model              AS aircraft_model,
+                a.manufacturer,
+                a.engines,
+                a.seats_first,
+                a.seats_economy,
+                a.total_seats,
+                f.available_first,
+                f.available_economy,
+                f.price_first        AS first_class_price,
+                f.price_economy      AS economy_price,
+                f.status,
+                f.flight_number,
+                f.node_id,
+                f.lamport_ts,
+                f.vector_clock,
+                f.last_update_epoch
+            FROM dbo.flights f
+            JOIN dbo.aircraft a ON a.aircraft_id = f.aircraft_id
+            WHERE RTRIM(f.origin) = :origin
+              AND RTRIM(f.destination) = :destination
+              AND f.departure_epoch >= :base_epoch
+              AND f.status IN ('SCHEDULED', 'BOARDING')
+              {seat_filter}
+            ORDER BY f.departure_epoch
+        """)
+        fallback_rows = db.execute(fallback_sql, {
+            "origin": origin, "destination": destination, "base_epoch": day_start
+        }).mappings().all()
+        if fallback_rows:
+            result = [dict(r) for r in fallback_rows]
+            for f in result:
+                f["date_note"] = "Próximo vuelo disponible"
+            return result
+        return []
+    except Exception:
         return []
 
 
@@ -634,6 +696,189 @@ async def list_flights(
 
     results.sort(key=lambda x: x.get("departure_epoch", 0))
     return results[:limit]
+
+
+# ─── GET /flights/dataset-info ──────────────────────────────────────────────
+
+@app.get("/flights/dataset-info")
+async def dataset_info(
+    db1: Session = Depends(get_db1),
+    db2: Session = Depends(get_db2),
+):
+    """
+    Retorna el rango de fechas disponible en la BD actual.
+    El frontend usa esto para configurar el calendario de búsqueda.
+    Funciona con cualquier dataset del mismo formato.
+    """
+    min_epoch = None
+    max_epoch = None
+    total_flights = 0
+
+    for db in [db1, db2]:
+        try:
+            row = db.execute(text("""
+                SELECT
+                    MIN(departure_epoch) AS min_ep,
+                    MAX(departure_epoch) AS max_ep,
+                    COUNT(*) AS cnt
+                FROM dbo.flights
+                WHERE status IN ('SCHEDULED', 'BOARDING')
+            """)).mappings().first()
+            if row and row["cnt"]:
+                total_flights += row["cnt"]
+                if min_epoch is None or (row["min_ep"] and row["min_ep"] < min_epoch):
+                    min_epoch = row["min_ep"]
+                if max_epoch is None or (row["max_ep"] and row["max_ep"] > max_epoch):
+                    max_epoch = row["max_ep"]
+        except Exception:
+            pass
+
+    try:
+        doc = await mongo_db.flights.find_one(
+            {"status": {"$in": ["SCHEDULED", "BOARDING"]}},
+            {"_id": 0, "departure_epoch": 1},
+            sort=[("departure_epoch", 1)]
+        )
+        if doc:
+            ep = doc["departure_epoch"]
+            if min_epoch is None or ep < min_epoch:
+                min_epoch = ep
+
+        doc2 = await mongo_db.flights.find_one(
+            {"status": {"$in": ["SCHEDULED", "BOARDING"]}},
+            {"_id": 0, "departure_epoch": 1},
+            sort=[("departure_epoch", -1)]
+        )
+        if doc2:
+            ep2 = doc2["departure_epoch"]
+            if max_epoch is None or ep2 > max_epoch:
+                max_epoch = ep2
+
+        cnt3 = await mongo_db.flights.count_documents({"status": {"$in": ["SCHEDULED", "BOARDING"]}})
+        total_flights += cnt3
+    except Exception:
+        pass
+
+    if not min_epoch or not max_epoch:
+        # Fallback al dataset conocido si la BD no responde
+        min_epoch = 1742860800  # 25 Mar 2026 UTC
+        max_epoch = 1743811199  # 5 Abr 2026 UTC
+
+    min_dt = datetime.fromtimestamp(min_epoch, tz=timezone.utc)
+    max_dt = datetime.fromtimestamp(max_epoch, tz=timezone.utc)
+    days = (max_dt.date() - min_dt.date()).days + 1
+
+    return {
+        "date_range": {
+            "start_epoch": min_epoch,
+            "end_epoch": max_epoch,
+            "start_date": min_dt.strftime("%Y-%m-%d"),
+            "end_date": max_dt.strftime("%Y-%m-%d"),
+            "days": days,
+        },
+        "total_flights": total_flights,
+    }
+
+
+# ─── GET /flights/available-dates ───────────────────────────────────────────
+
+@app.get("/flights/available-dates")
+async def available_dates(
+    origin: str = Query(..., min_length=3, max_length=3),
+    destination: str = Query(..., min_length=3, max_length=3),
+    db1: Session = Depends(get_db1),
+    db2: Session = Depends(get_db2),
+):
+    """
+    Retorna las fechas únicas donde hay vuelos directos para origin→destination.
+    Si no hay directos, retorna fechas donde hay vuelos desde el origen
+    (útil para saber qué días tienen vuelos con escala).
+    Funciona con cualquier dataset.
+    """
+    org = origin.upper().strip()
+    dst = destination.upper().strip()
+
+    node = _node_for_airport(org)
+
+    epoch_to_date_sql = """
+        SELECT DISTINCT
+            CONVERT(varchar(10),
+                DATEADD(second, departure_epoch, '1970-01-01 00:00:00'),
+                23) AS flight_date
+        FROM dbo.flights
+        WHERE RTRIM(origin) = :org
+          AND RTRIM(destination) = :dst
+          AND status IN ('SCHEDULED', 'BOARDING')
+        ORDER BY flight_date
+    """
+    origin_only_sql = """
+        SELECT DISTINCT
+            CONVERT(varchar(10),
+                DATEADD(second, departure_epoch, '1970-01-01 00:00:00'),
+                23) AS flight_date
+        FROM dbo.flights
+        WHERE RTRIM(origin) = :org
+          AND status IN ('SCHEDULED', 'BOARDING')
+        ORDER BY flight_date
+    """
+
+    dates: list[str] = []
+
+    if node == 3:
+        # MongoDB
+        pipeline = [
+            {"$match": {"origin": org, "destination": dst, "status": {"$in": ["SCHEDULED", "BOARDING"]}}},
+            {"$project": {
+                "date_str": {"$dateToString": {
+                    "format": "%Y-%m-%d",
+                    "date": {"$toDate": {"$multiply": ["$departure_epoch", 1000]}},
+                    "timezone": "UTC"
+                }}
+            }},
+            {"$group": {"_id": "$date_str"}},
+            {"$sort": {"_id": 1}},
+        ]
+        async for doc in mongo_db.flights.aggregate(pipeline):
+            dates.append(doc["_id"])
+
+        if not dates:
+            # Fechas del origen (para rutas con escala)
+            pipeline2 = [
+                {"$match": {"origin": org, "status": {"$in": ["SCHEDULED", "BOARDING"]}}},
+                {"$project": {
+                    "date_str": {"$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": {"$toDate": {"$multiply": ["$departure_epoch", 1000]}},
+                        "timezone": "UTC"
+                    }}
+                }},
+                {"$group": {"_id": "$date_str"}},
+                {"$sort": {"_id": 1}},
+            ]
+            async for doc in mongo_db.flights.aggregate(pipeline2):
+                dates.append(doc["_id"])
+    else:
+        db = db1 if node == 1 else db2
+        try:
+            rows = db.execute(
+                text(epoch_to_date_sql), {"org": org, "dst": dst}
+            ).mappings().all()
+            dates = [r["flight_date"] for r in rows]
+
+            if not dates:
+                rows2 = db.execute(
+                    text(origin_only_sql), {"org": org}
+                ).mappings().all()
+                dates = [r["flight_date"] for r in rows2]
+        except Exception:
+            pass
+
+    return {
+        "origin": org,
+        "destination": dst,
+        "dates": dates,
+        "direct_available": len(dates) > 0,
+    }
 
 
 # ─── Aeronaves (endpoints de compatibilidad) ─────────────────────────────────

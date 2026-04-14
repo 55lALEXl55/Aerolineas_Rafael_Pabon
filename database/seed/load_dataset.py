@@ -51,23 +51,46 @@ NODE_MAP = {
     "PEK": 3, "TYO": 3, "SIN": 3, "CAN": 3,
 }
 
-COST_MATRIX = {
+# Precios turista por ruta directa (None = sin ruta directa en el dataset)
+COST_ECONOMY = {
     "ATL": {"TYO":1400,"LAX":400,"FRA":800,"SIN":1500,"MAD":800,"DFW":200,"SAO":900},
-    "PEK": {"DXB":700,"TYO":500,"LON":900,"PAR":950,"SIN":600,"MAD":950,"AMS":900,"CAN":200,"SAO":1700},
-    "DXB": {"PEK":700,"TYO":750,"LON":650,"LAX":1300,"PAR":700,"FRA":600,"IST":400,"SIN":600,"AMS":650,"DFW":1200,"CAN":650,"SAO":1400},
-    "TYO": {"ATL":1400,"PEK":500,"DXB":750,"LON":1000,"LAX":900,"PAR":1050,"IST":900,"SIN":700,"MAD":1100,"CAN":550},
-    "LON": {"ATL":700,"DXB":650,"TYO":1000,"LAX":800,"PAR":150,"FRA":200,"IST":400,"MAD":200,"AMS":150,"DFW":750,"CAN":950,"SAO":1100},
-    "LAX": {"ATL":400,"PEK":1100,"DXB":1300,"TYO":900,"PAR":850,"FRA":900,"IST":1100,"SIN":1400,"AMS":850,"DFW":300,"CAN":1150},
-    "PAR": {"ATL":750,"DXB":700,"TYO":1050,"LAX":850,"FRA":150,"IST":450,"MAD":200,"AMS":180,"CAN":950,"SAO":1050},
-    "FRA": {"PEK":850,"DXB":600,"TYO":950,"LON":200,"LAX":900,"PAR":150,"IST":350,"CAN":850,"SAO":900},
-    "IST": {"DXB":400,"TYO":900,"FRA":350,"SIN":800,"MAD":500,"AMS":450,"DFW":1000,"CAN":800,"SAO":1200},
-    "SIN": {"PEK":600,"DXB":700,"TYO":900,"PAR":950,"IST":800,"MAD":1000,"CAN":1400},
-    "MAD": {"DXB":750,"PAR":200,"FRA":250,"IST":500,"SIN":1000,"AMS":200,"DFW":850,"CAN":950,"SAO":1000},
-    "AMS": {"ATL":780,"PEK":900,"DXB":650,"TYO":1000,"LON":150,"LAX":850,"PAR":200,"FRA":200,"IST":450,"MAD":200,"DFW":800,"CAN":900,"SAO":1050},
-    "DFW": {"ATL":200,"DXB":1200,"LAX":300,"FRA":800,"IST":1000,"MAD":850,"AMS":800,"CAN":1200,"SAO":950},
-    "CAN": {"PEK":200,"DXB":650,"TYO":550,"LON":950,"LAX":1150,"PAR":950,"IST":800,"SIN":500,"MAD":950,"AMS":900,"DFW":1200,"SAO":1700},
-    "SAO": {"ATL":900,"PEK":1700,"DXB":1400,"TYO":1800,"LON":1100,"LAX":1000,"PAR":1050,"FRA":1100,"IST":1200,"SIN":1800,"MAD":1000,"AMS":1050,"DFW":950,"CAN":1700},
+    "PEK": {"DXB":700,"TYO":500,"LON":900,"PAR":950,"SIN":600,"MAD":950,"AMS":900,"DFW":1150,"SAO":1700},
+    "DXB": {"PEK":700,"TYO":750,"LON":650,"LAX":1300,"PAR":700,"FRA":600,"IST":400,"SIN":600,"AMS":650,"DFW":1200,"SAO":1400},
+    "TYO": {"ATL":1400,"PEK":500,"DXB":750,"LON":1000,"LAX":900,"PAR":1050,"IST":900,"SIN":700,"MAD":1100,"DFW":1350},
+    "LON": {"ATL":700,"DXB":650,"TYO":1000,"LAX":800,"PAR":150,"IST":400,"MAD":200,"AMS":150,"SAO":1100},
+    "LAX": {"ATL":400,"PEK":1100,"DXB":1300,"TYO":900,"PAR":850,"FRA":900,"IST":1100,"SIN":1400,"AMS":850,"DFW":300},
+    "PAR": {"ATL":750,"DXB":700,"TYO":1050,"LAX":850,"FRA":150,"IST":450,"MAD":200,"AMS":180,"SAO":1050},
+    "FRA": {"PEK":850,"DXB":600,"TYO":950,"LON":200,"LAX":900,"PAR":150,"IST":350,"SIN":900,"DFW":850},
+    "IST": {"PEK":800,"DXB":400,"TYO":900,"FRA":350,"SIN":800,"MAD":500,"AMS":450,"DFW":1000,"SAO":1200},
+    "SIN": {"PEK":600,"TYO":700,"LON":900,"PAR":950,"IST":800,"MAD":1000,"DFW":1400},
+    "MAD": {"DXB":750,"LAX":900,"PAR":200,"FRA":250,"IST":500,"SIN":1000,"AMS":200,"DFW":850,"SAO":1000},
+    "AMS": {"ATL":780,"PEK":900,"DXB":650,"TYO":1000,"LON":150,"LAX":850,"IST":450,"MAD":200,"DFW":800,"SAO":1050},
+    "DFW": {"ATL":200,"DXB":1200,"LAX":300,"PAR":800,"IST":1000,"MAD":850,"AMS":800,"CAN":1200,"SAO":950},
+    "CAN": {"ATL":1250,"PEK":200,"DXB":650,"TYO":550,"LON":950,"LAX":1150,"PAR":950,"IST":800,"SIN":500,"AMS":900,"DFW":1200,"SAO":1700},
+    "SAO": {"ATL":900,"DFW":950},
 }
+
+# Precios primera clase
+COST_FIRST = {
+    "ATL": {"TYO":1890,"LAX":540,"FRA":1080,"SIN":2025,"MAD":1080,"DFW":270,"SAO":1215},
+    "PEK": {"DXB":945,"TYO":675,"LON":1215,"PAR":1283,"SIN":810,"MAD":1283,"AMS":1215,"DFW":1553,"SAO":2295},
+    "DXB": {"PEK":945,"TYO":1013,"LON":878,"LAX":1755,"PAR":945,"FRA":810,"IST":540,"SIN":810,"AMS":878,"DFW":1620,"SAO":1890},
+    "TYO": {"ATL":1890,"PEK":675,"DXB":1013,"LON":1350,"LAX":1215,"PAR":1418,"IST":1215,"SIN":945,"MAD":1485,"DFW":1823},
+    "LON": {"ATL":945,"DXB":878,"TYO":1350,"LAX":1080,"PAR":203,"IST":540,"MAD":270,"AMS":203,"SAO":1485},
+    "LAX": {"ATL":540,"PEK":1485,"DXB":1755,"TYO":1215,"PAR":1148,"FRA":1215,"IST":4049,"SIN":1890,"AMS":1148,"DFW":405},
+    "PAR": {"ATL":1013,"DXB":945,"TYO":1418,"LAX":1148,"FRA":203,"IST":608,"MAD":270,"AMS":243,"SAO":1418},
+    "FRA": {"PEK":1148,"DXB":810,"TYO":1283,"LON":270,"LAX":1215,"PAR":203,"IST":473,"SIN":1215,"DFW":1148},
+    "IST": {"PEK":1080,"DXB":540,"TYO":1215,"FRA":473,"SIN":1080,"MAD":675,"AMS":608,"DFW":1350,"SAO":1620},
+    "SIN": {"PEK":810,"TYO":945,"LON":1215,"PAR":1283,"IST":1080,"MAD":1350,"DFW":1890},
+    "MAD": {"DXB":1013,"LAX":1215,"PAR":270,"FRA":338,"IST":675,"SIN":1350,"AMS":270,"DFW":1148,"SAO":1350},
+    "AMS": {"ATL":1053,"PEK":1215,"DXB":878,"TYO":1350,"LON":203,"LAX":1148,"IST":608,"MAD":270,"DFW":1080,"SAO":1418},
+    "DFW": {"ATL":270,"DXB":1620,"LAX":405,"PAR":1080,"IST":1350,"MAD":1148,"AMS":1080,"CAN":1620,"SAO":1283},
+    "CAN": {"ATL":1688,"PEK":270,"DXB":878,"TYO":743,"LON":1283,"LAX":1553,"PAR":1283,"IST":1080,"SIN":675,"AMS":1215,"DFW":1620,"SAO":2295},
+    "SAO": {"ATL":1215,"DFW":1283},
+}
+
+# Alias para compatibilidad
+COST_MATRIX = COST_ECONOMY
 
 TIME_MATRIX = {
     "ATL": {"PEK":15,"DXB":14,"TYO":16,"LON":8,"LAX":5,"PAR":9,"FRA":9,"IST":11,"SIN":18,"MAD":8,"AMS":9,"DFW":2,"CAN":16,"SAO":9},
@@ -121,23 +144,37 @@ FIRST_ROWS = {
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def to_epoch(date_str: str, time_str: str) -> int:
-    """Convierte 'YYYY-MM-DD' + 'HH:MM' a epoch unix (UTC)."""
+    """
+    Convierte fecha CSV a epoch unix UTC.
+    date_str: "03/30/26" (MM/DD/YY)
+    time_str: "17:33" (H:MM o HH:MM)
+    """
     try:
-        dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        return int(timegm(dt.timetuple()))
-    except Exception:
-        try:
-            dt = datetime.strptime(f"{date_str} {time_str}", "%d/%m/%Y %H:%M")
-            return int(timegm(dt.timetuple()))
-        except Exception:
-            return int(time.time())
+        dt = datetime.strptime(
+            f"{date_str.strip()} {time_str.strip()}",
+            "%m/%d/%y %H:%M"
+        )
+        # CRÍTICO: forzar UTC, no usar timezone local
+        return int(dt.replace(tzinfo=timezone.utc).timestamp())
+    except Exception as e:
+        print(f"Error parseando {date_str} {time_str}: {e}")
+        return 1743292800  # fallback: 30 Mar 2026 UTC
 
 
-def get_price(origin: str, destination: str) -> float:
-    """Precio turista desde COST_MATRIX; fallback 500."""
+def get_price(origin: str, destination: str, seat_class: str = "ECONOMY") -> float:
+    """
+    Precio desde las matrices correctas del dataset.
+    Intenta dirección inversa si no existe (algunas rutas son asimétricas).
+    Fallback 500 si la ruta no está en ninguna matriz.
+    """
     o = origin.strip().upper()
     d = destination.strip().upper()
-    return float(COST_MATRIX.get(o, {}).get(d, 500))
+    matrix = COST_FIRST if seat_class == "FIRST" else COST_ECONOMY
+    price = matrix.get(o, {}).get(d)
+    if price is None:
+        # Intentar la dirección inversa
+        price = matrix.get(d, {}).get(o)
+    return float(price) if price is not None else 500.0
 
 
 def get_duration(origin: str, destination: str) -> int:
@@ -325,6 +362,42 @@ def mongo_alloc_ids(mdb, counter_name: str, count: int) -> range:
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+def detect_date_range(csv_path: str):
+    """
+    Detecta el rango de fechas del CSV y muestra resumen.
+    Útil para verificar el dataset antes de insertar.
+    Retorna (min_epoch, max_epoch) o (None, None) si no se puede leer.
+    """
+    epochs = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, skipinitialspace=True)
+        for row in reader:
+            date_str = row.get("flight_date", row.get("Date", "")).strip()
+            time_str = row.get("flight_time", row.get("Time", "00:00")).strip()
+            if not date_str:
+                continue
+            try:
+                ep = to_epoch(date_str, time_str)
+                if ep > 0:
+                    epochs.append(ep)
+            except Exception:
+                pass
+
+    if not epochs:
+        print("[WARN] No se pudo detectar rango de fechas del CSV.")
+        return None, None
+
+    min_ep = min(epochs)
+    max_ep = max(epochs)
+    min_dt = datetime.fromtimestamp(min_ep, tz=timezone.utc)
+    max_dt = datetime.fromtimestamp(max_ep, tz=timezone.utc)
+    days = (max_dt.date() - min_dt.date()).days + 1
+
+    print(f"📅 Rango del dataset : {min_dt.strftime('%d %b %Y')} → {max_dt.strftime('%d %b %Y')} ({days} días)")
+    print(f"📊 Total registros   : {len(epochs):,}")
+    return min_ep, max_ep
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", default=CSV_DEFAULT)
@@ -336,6 +409,11 @@ def main():
         print(f"[ERROR] CSV no encontrado: {args.csv}")
         print("Coloca el archivo en database/seed/flights_dataset.csv")
         sys.exit(1)
+
+    # Detectar rango de fechas antes de insertar
+    print("Analizando dataset…")
+    detect_date_range(args.csv)
+    print()
 
     rng = random.Random(42)
 
@@ -387,8 +465,8 @@ def main():
             skipped += 1
             continue
 
-        price_eco  = get_price(origin, destination)
-        price_first = round(price_eco * 1.35, 2)
+        price_eco   = get_price(origin, destination, "ECONOMY")
+        price_first = get_price(origin, destination, "FIRST")
         duration   = get_duration(origin, destination)
         dep_epoch  = to_epoch(date_str, time_str) if date_str else now + rng.randint(3600, 86400*30)
         arr_epoch  = dep_epoch + duration * 60
